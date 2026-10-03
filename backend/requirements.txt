@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+opencv-python
+numpy
+imagehash
+pytesseract
+pymupdf
+exifread
+piexif
+sqlalchemy
+psycopg2-binary
+rapidfuzz
