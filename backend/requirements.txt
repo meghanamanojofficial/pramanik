@@ -12,3 +12,7 @@ piexif
 sqlalchemy
 psycopg2-binary
 rapidfuzz
+pyzbar
+reportlab
+qrcode[pil]
+requests

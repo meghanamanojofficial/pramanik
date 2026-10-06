@@ -4,3 +4,6 @@ _pycache_/
 *.pyc
 .env
 pramanik.db
+__pycache__/
+audit.log
+tests/*.pdf
