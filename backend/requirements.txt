@@ -19,3 +19,4 @@ cryptography
 sqlalchemy
 # Optional QR fallback; needs the zbar system library (apt install libzbar0 / brew install zbar).
 pyzbar
+httpx2
