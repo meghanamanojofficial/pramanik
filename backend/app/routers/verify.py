@@ -5,7 +5,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 
 from ..issuers import mock_issuer
-from ..services import compare, extract, qr_service, verdict as verdict_rules
+from ..services import compare, doctypes, extract, qr_service, verdict as verdict_rules
 from ..services.audit import write_audit
 
 router = APIRouter()
@@ -38,25 +38,31 @@ async def verify(
             text = extract.extract_text(raw)
         except extract.UnreadablePDF:
             return _error(400, "Upload a text-based PDF.")
-        doc_fields = extract.extract_fields(text)
+
+        # 1. work out what kind of document this is, and read its fields (all from the schema)
+        doc_type = doctypes.detect(text)
+        doc_fields = extract.extract_fields(text, doc_type) if doc_type else {}
         qr_number = qr_service.decode_qr(raw)
 
-        decision = verdict_rules.decide(doc_fields, qr_number, mock_issuer.verify)
-        rows = compare.field_rows(doc_fields, decision["issuer_result"], decision["issuer_note"])
+        # 2. send the extracted fields to the issuing authority and apply the verdict rules
+        decision = verdict_rules.decide(doc_type, doc_fields, qr_number, mock_issuer.verify)
+        rows = compare.field_rows(doc_type, doc_fields, decision["issuer_result"], decision["issuer_note"])
 
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         officer = officer_id.strip()[:64]
         write_audit(doc_hash, decision["verdict"], decision["route"], officer, timestamp)
 
+        printed_key = doc_fields.get(doctypes.key_field(doc_type)) if doc_type else None
         return {
             "verdict": decision["verdict"],
             "route": decision["route"],
             "input_type": "pdf",
+            "document_type": doc_type["id"] if doc_type else None,
             "coverage": compare.coverage(rows),
             "reasons": decision["reasons"],
             "fields": rows,
             "checks": {
-                "qr_consistency": verdict_rules.qr_consistency(doc_fields.get("certificate_number"), qr_number),
+                "qr_consistency": verdict_rules.qr_consistency(printed_key, qr_number),
                 "pdf_metadata": "not_applicable",
                 "digital_signature": "not_applicable",
             },

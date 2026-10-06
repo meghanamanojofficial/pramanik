@@ -1,0 +1,40 @@
+{
+  "document_types": [
+    {
+      "id": "income_certificate",
+      "title": "Income Certificate",
+      "issuer_id": "revenue_dept",
+      "recognize": ["INCOME CERTIFICATE"],
+      "header_lines": ["STATE REVENUE DEPARTMENT", "INCOME CERTIFICATE"],
+      "key_field": "certificate_number",
+      "valid_status": "active",
+      "fields": [
+        {
+          "name": "certificate_number",
+          "label": "Certificate No",
+          "value_pattern": "INC-\\d{4}-\\d{4}",
+          "compare": { "method": "exact" }
+        },
+        {
+          "name": "holder_name",
+          "label": "Name",
+          "value_pattern": ".+",
+          "compare": { "method": "fuzzy", "threshold": 90, "ignore_case": true }
+        },
+        {
+          "name": "issue_date",
+          "label": "Issue Date",
+          "value_pattern": "\\d{4}-\\d{2}-\\d{2}",
+          "compare": { "method": "exact" }
+        },
+        {
+          "name": "income_amount",
+          "label": "Annual income",
+          "value_pattern": "[\\d,]+",
+          "normalize": ["digits_only"],
+          "compare": { "method": "exact" }
+        }
+      ]
+    }
+  ]
+}

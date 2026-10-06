@@ -1,0 +1,11 @@
+{
+  "base_url": "http://localhost:8001",
+  "document_type": "income_certificate",
+  "records_file": "data/mock_records.json",
+  "audit_file": "audit.log",
+  "officer_id": "OFF-TEST",
+  "leak_check_case_id": "CASE-LEAKCHECK-77123",
+  "unknown_key_value": "INC-9999-9999",
+  "tamper": { "field": "income_amount", "increase": 100000 },
+  "leak_check_fields": ["holder_name", "income_amount"]
+}

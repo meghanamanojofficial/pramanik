@@ -1,16 +1,10 @@
-"""PDF text, printed-field extraction and normalisation. Everything stays in memory."""
-import re
+"""PDF text and printed-field extraction. Which fields exist comes from the document-type schema.
+Everything stays in memory."""
+from typing import Optional
 
 import pymupdf as fitz  # PyMuPDF
 
-FIELD_ORDER = ["certificate_number", "holder_name", "issue_date", "income_amount"]
-
-_PATTERNS = {
-    "certificate_number": re.compile(r"Certificate No:\s*(INC-\d{4}-\d{4})", re.I | re.M),
-    "holder_name": re.compile(r"Name:\s*(.+)", re.I | re.M),
-    "issue_date": re.compile(r"Issue Date:\s*(\d{4}-\d{2}-\d{2})", re.I | re.M),
-    "income_amount": re.compile(r"Annual income:\s*([\d,]+)", re.I | re.M),
-}
+from .doctypes import field_pattern, normalise
 
 
 class UnreadablePDF(Exception):
@@ -25,22 +19,15 @@ def extract_text(raw: bytes) -> str:
             return "\n".join(page.get_text() for page in doc)
     except UnreadablePDF:
         raise
-    except Exception as exc:  # corrupt file; never include details in the message
+    except Exception:  # corrupt file; never include details in the message
         raise UnreadablePDF from None
 
 
-def normalise(field: str, value: str) -> str:
-    value = re.sub(r"\s+", " ", value.strip())
-    if field == "income_amount":
-        value = re.sub(r"\D", "", value)
-    return value
-
-
-def extract_fields(text: str) -> dict[str, str | None]:
-    """Return the four printed fields, or None for any that could not be read."""
-    fields: dict[str, str | None] = {}
-    for name in FIELD_ORDER:
-        m = _PATTERNS[name].search(text)
-        value = normalise(name, m.group(1)) if m else ""
-        fields[name] = value or None
+def extract_fields(text: str, doc_type: dict) -> dict[str, Optional[str]]:
+    """Return every field the schema lists for this document type, or None for any that could not be read."""
+    fields: dict[str, Optional[str]] = {}
+    for spec in doc_type["fields"]:
+        m = field_pattern(spec).search(text)
+        value = normalise(spec, m.group(1)) if m else ""
+        fields[spec["name"]] = value or None
     return fields

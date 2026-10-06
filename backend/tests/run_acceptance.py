@@ -1,6 +1,8 @@
-"""Acceptance tests. Needs a running server:  uvicorn app.main:app --reload
+"""Acceptance tests. Needs BOTH servers running (issuer service on 8002, Pramanik on 8001).
 Run from backend/ after `python tools/make_test_pdfs.py`:  python tests/run_acceptance.py
-Set BASE_URL to test a different host (default http://localhost:8000).
+
+Test inputs live in config/test_cases.json; field names come from config/document_types.json.
+Set BASE_URL to test a different host (default comes from test_cases.json).
 """
 import json
 import os
@@ -10,12 +12,19 @@ from pathlib import Path
 
 import requests
 
-BASE = os.environ.get("BASE_URL", "http://localhost:8000")
 ROOT = Path(__file__).resolve().parents[1]
+CFG = json.loads((ROOT / "config" / "test_cases.json").read_text(encoding="utf-8"))
+SCHEMA = json.loads((ROOT / "config" / "document_types.json").read_text(encoding="utf-8"))["document_types"]
+DOC = next(t for t in SCHEMA if t["id"] == CFG["document_type"])
+
+BASE = os.environ.get("BASE_URL", CFG["base_url"])
 TESTS = ROOT.parent / "demo_docs" / "pdfs"
-RECORDS = ROOT / "data" / "mock_records.json"
-AUDIT = ROOT / "audit.log"
-CASE_ID = "CASE-LEAKCHECK-77123"
+RECORDS = ROOT / CFG["records_file"]
+AUDIT = ROOT / CFG["audit_file"]
+CASE_ID = CFG["leak_check_case_id"]
+OFFICER = CFG["officer_id"]
+TAMPER_FIELD, TAMPER_BY = CFG["tamper"]["field"], CFG["tamper"]["increase"]
+N_FIELDS = len(DOC["fields"])
 
 results: list[tuple[str, bool, str]] = []
 
@@ -26,7 +35,7 @@ def record(name: str, ok: bool, note: str = "") -> None:
 
 
 def post(pdf: Path | None = None, *, case_id: str = CASE_ID, content: bytes | None = None, filename: str | None = None):
-    data = {"officer_id": "OFF-TEST", "case_id": case_id, "purpose": "acceptance"}
+    data = {"officer_id": OFFICER, "case_id": case_id, "purpose": "acceptance"}
     if pdf is not None:
         content, filename = pdf.read_bytes(), pdf.name
     files = {"file": (filename or "file.pdf", content or b"", "application/pdf")}
@@ -61,32 +70,30 @@ def main() -> int:
     # 2. each PDF gives the expected verdict and key reason
     expected = {
         "genuine.pdf": ("VERIFIED", "All printed fields match the issuer record."),
-        "edited_amount.pdf": ("TAMPERED", "income_amount on the document does not match the issuer record."),
+        "edited_amount.pdf": ("TAMPERED", f"{TAMPER_FIELD} on the document does not match the issuer record."),
         "unknown_number.pdf": ("SUSPICIOUS", "Issuer has no record of this certificate number."),
         "revoked.pdf": ("SUSPICIOUS", "Issuer lists this certificate as revoked."),
     }
-    sent = 0
     for name, (verdict, reason) in expected.items():
         pdf = TESTS / name
         if not pdf.exists():
             print(f"SKIP  2  {name} (not generated; probably no record of that kind)")
             continue
         body = post(pdf).json()
-        sent += 1
         record(f"2  {name} -> {verdict}", body.get("verdict") == verdict and reason in body.get("reasons", []),
                f"got {body.get('verdict')} {body.get('reasons')}")
 
-    # 3. edited amount details
+    # 3. edited field: flagged, shows the edited value, and the issuer's real value is NOT disclosed
     body = post(TESTS / "edited_amount.pdf").json()
-    sent += 1
-    row = next((r for r in body.get("fields", []) if r["field"] == "income_amount"), {})
-    edited = str(int(active["income_amount"]) + 100000)
-    record("3  edited_amount field row",
-           row.get("match") is False and row.get("document") == edited and row.get("issuer") == active["income_amount"]
-           and body.get("coverage") == "3 of 4 printed fields confirmed with issuer", str(row))
+    row = next((r for r in body.get("fields", []) if r["field"] == TAMPER_FIELD), {})
+    edited = str(int(active[TAMPER_FIELD]) + TAMPER_BY)
+    record("3  edited field row, issuer value not disclosed",
+           row.get("match") is False and row.get("document") == edited
+           and row.get("issuer") != active[TAMPER_FIELD]
+           and body.get("coverage") == f"{N_FIELDS - 1} of {N_FIELDS} printed fields confirmed with issuer", str(row))
 
     # 4. empty case id
-    r = requests.post(f"{BASE}/verify", data={"officer_id": "OFF-TEST", "case_id": "", "purpose": "x"},
+    r = requests.post(f"{BASE}/verify", data={"officer_id": OFFICER, "case_id": "", "purpose": "x"},
                       files={"file": ("a.pdf", (TESTS / "genuine.pdf").read_bytes(), "application/pdf")}, timeout=30)
     record("4  empty case_id -> 400", r.status_code == 400, str(r.status_code))
 
@@ -101,7 +108,7 @@ def main() -> int:
         post(TESTS / name)
         n += 1
     new = audit_lines()[before:]
-    banned = [active["holder_name"], active["income_amount"], str(int(active["income_amount"]) + 100000), CASE_ID]
+    banned = [str(active[f]) for f in CFG["leak_check_fields"]] + [edited, CASE_ID]
     leaked = [b for b in banned if any(b in line for line in new)]
     record("6  audit log lines, no leaks", len(new) == n and not leaked, f"lines={len(new)}/{n} leaked={leaked}")
 
@@ -113,7 +120,7 @@ def main() -> int:
     after_files = snapshot(watch)
     record("7  no files written during requests", after_files <= before_files, str(sorted(after_files - before_files)[:5]))
 
-    # 8. records file missing -> issuer unreachable
+    # 8. issuer's records file missing -> issuer cannot answer
     backup = RECORDS.with_suffix(".json.bak")
     RECORDS.rename(backup)
     try:
