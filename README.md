@@ -52,8 +52,11 @@ image -> quality gate -> find page + straighten -> find QR -> OCR (QR masked out
 | Check | Effect |
 |---|---|
 | **Issuer-signed QR** (Ed25519). A valid signature proves the QR came from the issuer. | A printed field that differs from the signed QR: **MISMATCH**. A QR whose signature fails: **MATCHES_RECORD_INTEGRITY_CONCERNS**. |
+| **Visible-page check** (PDFs): the text layer is compared with an OCR reading of the rendered page. | A value that differs from what is shown: **MISMATCH**. Two different values for one field in the text layer: integrity concern. Defeats "paint over the number" and invisible-text forgeries. Switch off with `pdf_visual_check.enabled` in `scan.json`. |
 | **Links** printed on the document (never fetched): `http`, shorteners, look-alike domains. | integrity concern / warning |
 | **Reuse ledger**: the same certificate presented in other cases (fingerprints only, see Security notes). | warning, or integrity concern above a threshold |
+
+Front-end developers: see [`backend/API.md`](backend/API.md) for the request and response contract.
 
 ### Risk score and issuer-answer cache
 
@@ -100,6 +103,12 @@ Keys are generated on your machine and never committed (`backend/.env`, `issuer_
 QR **signing** keys are per machine too, so the demo documents (`demo_docs/pdfs`, `demo_docs/scans`) are generated, not
 committed; `run_all.py` makes them when it makes keys. `--new-signing-key` adds a signing key and retires the old one
 (certificates it signed still verify).
+
+## Demos
+
+The reuse ledger remembers every certificate and the cases it was checked in, so checking the *same* sample certificate
+under several different case IDs correctly produces "already presented in other cases" warnings. To start a demo clean:
+stop the backend, then `python backend/tools/reset_ledger.py --yes`.
 
 ## Tests
 

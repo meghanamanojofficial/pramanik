@@ -5,8 +5,6 @@ is returned with its points and a plain-language reason, so the number can alway
 challenged. When nothing was actually judged (RESCAN, INCONCLUSIVE, UNVERIFIABLE) there is no score:
 inventing one would hide the fact that the document has not been checked.
 """
-from typing import Optional
-
 from .. import config
 from .signals import Severity, Signal
 

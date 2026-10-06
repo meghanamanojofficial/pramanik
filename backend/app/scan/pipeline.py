@@ -33,6 +33,11 @@ def _gate() -> threading.BoundedSemaphore:
         return _slots
 
 
+def slot():
+    """Context manager: hold one of the limited OCR slots."""
+    return _gate()
+
+
 def read_image(raw: Optional[bytes] = None, img: Optional[np.ndarray] = None) -> Reading:
     """Give either the uploaded bytes or an already-decoded RGB array (a rendered scanned-PDF page)."""
     with _gate():

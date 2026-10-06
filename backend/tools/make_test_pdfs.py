@@ -10,6 +10,8 @@ issuer's private key (issuer_service/signing_keys/, created by issuer_service/se
 key yet it falls back to plain-number QR codes and says so.
 
     genuine.pdf            signed QR, matches the record          -> VERIFIED
+    painted_over_amount.pdf   a new amount painted over the old one; the old text is still in the file -> MISMATCH
+    hidden_text_forgery.pdf   a picture of an edited page with invisible genuine text -> MISMATCH
     edited_amount.pdf      amount edited; QR is the genuine signature (so it disagrees with the print) -> MISMATCH
     unknown_number.pdf     number the issuer never issued, plain QR (a forger has no key) -> SUSPICIOUS
     revoked.pdf            signed QR of a revoked record           -> SUSPICIOUS
@@ -21,6 +23,7 @@ import json
 import sys
 from pathlib import Path
 
+import pymupdf as fitz
 import qrcode
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
@@ -72,6 +75,33 @@ def make_pdf(path: Path, values: dict, qr_text: str | None = None) -> None:
     c.save()
 
 
+def painted_over(genuine: Path, out: Path) -> None:
+    """The forgery a PDF editor that only paints produces: new number on a white box, old text still underneath."""
+    with fitz.open(str(genuine)) as doc:
+        page, tamper = doc[0], CFG["tamper"]
+        spec = next(f for f in DOC["fields"] if f["name"] == tamper["field"])
+        old = next(l for l in page.get_text().splitlines() if l.startswith(spec["label"]))
+        rect = page.search_for(old)[0]
+        new = f"{spec['label']}: {int(old.split(': ')[1]) + tamper['increase']}"
+        page.draw_rect(rect + (-2, -2, 60, 2), color=None, fill=(1, 1, 1))
+        page.insert_text((rect.x0, rect.y1 - 2), new, fontsize=12)
+        doc.save(str(out))
+
+
+def hidden_text(genuine: Path, painted: Path, out: Path) -> None:
+    """A picture of the edited page, with an invisible text layer that still says the genuine values."""
+    with fitz.open(str(painted)) as edited, fitz.open(str(genuine)) as real, fitz.open() as doc:
+        shown = edited[0].get_pixmap(dpi=200, alpha=False).tobytes("jpeg", jpg_quality=85)
+        page = doc.new_page(width=edited[0].rect.width, height=edited[0].rect.height)
+        page.insert_image(page.rect, stream=shown)
+        for block in real[0].get_text("dict")["blocks"]:
+            for line in block.get("lines", []):
+                text = "".join(span["text"] for span in line["spans"])
+                if text.strip():
+                    page.insert_text((line["bbox"][0], line["bbox"][3] - 2), text, fontsize=12, render_mode=3)
+        doc.save(str(out))
+
+
 def main() -> int:
     try:
         records = json.loads(RECORDS.read_text(encoding="utf-8"))
@@ -104,6 +134,9 @@ def main() -> int:
         make_pdf(forged, active, broken_signature(token))
     else:
         forged.unlink(missing_ok=True)
+
+    painted_over(OUT / "genuine.pdf", OUT / "painted_over_amount.pdf")
+    hidden_text(OUT / "genuine.pdf", OUT / "painted_over_amount.pdf", OUT / "hidden_text_forgery.pdf")
 
     revoked = next((r for r in records if r.get("status") == "revoked"), None)
     revoked_path = OUT / "revoked.pdf"

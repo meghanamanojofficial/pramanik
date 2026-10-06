@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from .. import config
-from ..checks import consistency, links, reuse, signed_qr
+from ..checks import consistency, links, reuse, signed_qr, visual
 from ..issuers import mock_issuer
 from ..scan import pipeline as scan_pipeline
 from . import compare, doctypes, extract, issuer_cache, ledger, qr_payload, qr_service, risk, verdict as verdict_rules
@@ -36,14 +36,19 @@ def _read_pdf(raw: bytes) -> tuple[Reading, str]:
     """Text layer if there is one; otherwise the page is an image and goes through OCR like a photo."""
     text = extract.extract_text(raw)
     cfg = config.scan()["scanned_pdf"]
+    page = qr_service.render_page_one(raw, cfg["dpi"])
     if len(text.strip()) < cfg["min_text_chars"]:
-        page = qr_service.render_page_one(raw, cfg["dpi"])
         if page is None:
             raise extract.UnreadablePDF
         return scan_pipeline.read_image(img=page), "scanned_pdf"
     doc_type = doctypes.detect(text)
     fields = extract.extract_fields(text, doc_type) if doc_type else {}
-    return Reading(doc_type=doc_type, fields=fields, qr_raw=qr_service.decode_qr(raw), text=text), "pdf"
+    hits = qr_service.decode_array(page) if page is not None else []
+    signals = [Signal("pdf_conflicting_text", Severity.STRONG, config.message("pdf_conflicting_text", field=name), region=name)
+               for name in (extract.conflicts(text, doc_type) if doc_type else [])]
+    signals += visual.check(doc_type, fields, page)
+    return Reading(doc_type=doc_type, fields=fields, qr_raw=hits[0].data if hits else None, text=text,
+                   signals=signals, page=page), "pdf"
 
 
 def run(raw: bytes, kind: str, officer: str, case_id: str, fresh: bool = False) -> dict:

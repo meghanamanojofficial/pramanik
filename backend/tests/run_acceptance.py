@@ -94,6 +94,9 @@ def main() -> int:
         "plain_qr.pdf": ("VERIFIED", MSG["all_match"]),
         "forged_signature.pdf": ("MATCHES_RECORD_INTEGRITY_CONCERNS", MSG["qr_sig_bad_signature"]),
         "scanned_genuine.pdf": ("VERIFIED", MSG["all_match"]),  # image-only PDF, read by OCR
+        # the text layer says one thing, the page shows another: judged by what is visible
+        "painted_over_amount.pdf": ("MISMATCH", MSG["visual_mismatch"].format(field=TAMPER_FIELD)),
+        "hidden_text_forgery.pdf": ("MISMATCH", MSG["visual_mismatch"].format(field=TAMPER_FIELD)),
     }
     for name, (verdict, reason) in expected.items():
         pdf = TESTS / name

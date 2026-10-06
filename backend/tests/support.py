@@ -1,5 +1,4 @@
 """Shared test setup: import paths, an isolated signing-key store and ledger."""
-import json
 import os
 import sys
 import tempfile

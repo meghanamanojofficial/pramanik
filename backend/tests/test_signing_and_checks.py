@@ -92,6 +92,33 @@ class LinkTests(unittest.TestCase):
         self.assertEqual(self.names("www.example.org"), ["unknown_link_domain"])
 
 
+class TextLayerTests(unittest.TestCase):
+    def conflicts(self, text):
+        from app.services import extract
+        return extract.conflicts(text, DOC)
+
+    def test_a_field_printed_twice_with_different_values_is_flagged(self):
+        base = "INCOME CERTIFICATE\nCertificate No: INC-0000-0001\nName: A B\nIssue Date: 2026-01-01\n"
+        self.assertEqual(self.conflicts(base + "Annual income: 100000\nAnnual income: 480000"), ["income_amount"])
+        self.assertEqual(self.conflicts(base + "Annual income: 100000"), [])
+        self.assertEqual(self.conflicts(base + "Annual income: 100000\nAnnual income: 1,00,000"), [])  # same value, formatted
+
+    def test_visual_check_is_skipped_when_switched_off_or_ocr_missing(self):
+        import json, os, tempfile
+        from pathlib import Path
+        from app import config
+        from app.checks import visual
+        import numpy as np
+        cfg = config.scan(); cfg["pdf_visual_check"] = {"enabled": False}
+        f = Path(tempfile.mkdtemp()) / "scan.json"; f.write_text(json.dumps(cfg))
+        os.environ["SCAN_CONFIG"] = str(f)
+        try:
+            self.assertEqual(visual.check(DOC, FIELDS, np.zeros((10, 10, 3), np.uint8)), [])
+        finally:
+            del os.environ["SCAN_CONFIG"]
+        self.assertEqual(visual.check(None, FIELDS, np.zeros((10, 10, 3), np.uint8)), [])
+
+
 def S(name, sev, detail="d"):
     return Signal(name, sev, detail)
 

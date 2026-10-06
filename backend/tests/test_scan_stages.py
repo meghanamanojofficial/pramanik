@@ -9,7 +9,6 @@ from PIL import Image
 from support import DOC  # noqa: F401  (sets import paths)
 
 from app.scan.stages import ocr, parse, quality, rectify
-from app.services import doctypes
 
 
 def page(width=900, height=1200, paper=250, ink=10, text=True, noise=0.0):

@@ -1,8 +1,10 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.formparsers import MultiPartParser
@@ -28,7 +30,14 @@ async def lifespan(_: FastAPI):
     yield
 
 
+config.load_env()
+CORS_ORIGINS = [o.strip() for o in os.environ.get("PRAMANIK_CORS_ORIGINS", "").split(",") if o.strip() and o.strip() != "*"]
+
 app = FastAPI(title="Document Verification Platform", docs_url=None, redoc_url=None, lifespan=lifespan)
+
+
+if CORS_ORIGINS:  # only for a front end served from another address (e.g. a dev server); never "*"
+    app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 
 @app.middleware("http")

@@ -83,7 +83,11 @@
     "risk_ocr": "Read from an image, which is less reliable than a text PDF.",
     "risk_low_confidence": "Some text was read with low confidence ({conf}%).",
     "risk_signature_valid": "The QR carries a valid issuer signature.",
-    "issuer_cached": "The issuer's answer was reused from {minutes} minute(s) ago. Tick \"Ask the issuer again\" for a live check."
+    "issuer_cached": "The issuer's answer was reused from {minutes} minute(s) ago. Tick \"Ask the issuer again\" for a live check.",
+    "visual_mismatch": "{field} in the PDF's text differs from what is shown on the page.",
+    "visual_unconfirmed": "Some values could not be confirmed against the visible page.",
+    "visual_confirmed": "The PDF's text matches what is visible on the page.",
+    "pdf_conflicting_text": "The PDF contains conflicting values for {field}; it may have been edited."
   },
   "samples": [
     {

@@ -31,3 +31,14 @@ def extract_fields(text: str, doc_type: dict) -> dict[str, Optional[str]]:
         value = normalise(spec, m.group(1)) if m else ""
         fields[spec["name"]] = value or None
     return fields
+
+
+def conflicts(text: str, doc_type: dict) -> list[str]:
+    """Fields that appear more than once in the text layer with different values. A genuine certificate prints
+    each field once; a PDF edited by painting over the old value usually still carries both."""
+    out = []
+    for spec in doc_type["fields"]:
+        values = {normalise(spec, m.group(1)) for m in field_pattern(spec).finditer(text)}
+        if len(values - {""}) > 1:
+            out.append(spec["name"])
+    return out
