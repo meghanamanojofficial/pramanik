@@ -1,6 +1,6 @@
 {
   "app_title": "Document verification",
-  "subtitle": "Check a document against the issuer's record. Supported: {document_types}.",
+  "subtitle": "Check a document against the issuer's record. Upload a PDF, or a photo or scan of a printed copy. Supported: {document_types}.",
   "default_officer_id": "",
   "officer_id_label": "Officer ID (self-reported, not verified)",
   "max_upload_mb": 10,
@@ -13,11 +13,14 @@
     "VERIFIED": "Verified",
     "MISMATCH": "Does not match issuer record",
     "SUSPICIOUS": "Suspicious",
-    "UNVERIFIABLE": "Unverifiable"
+    "UNVERIFIABLE": "Unverifiable",
+    "VERIFIED_WITH_WARNINGS": "Verified, with warnings",
+    "MATCHES_RECORD_INTEGRITY_CONCERNS": "Matches record, integrity concerns",
+    "RESCAN": "Rescan needed",
+    "INCONCLUSIVE": "Inconclusive"
   },
   "messages": {
     "case_id_required": "A case or application ID is required.",
-    "not_pdf": "Upload a text-based PDF.",
     "file_too_large": "File is larger than {max_mb} MB.",
     "request_unreadable": "The request could not be read.",
     "verification_failed": "Verification could not be completed.",
@@ -36,7 +39,51 @@
     "registry_unavailable": "The issuer is reachable but its registry could not be read.",
     "bad_response": "The issuer sent a response Pramanik could not read.",
     "insecure_transport": "The issuer address uses plain HTTP. Use HTTPS (plain HTTP is only allowed for localhost).",
-    "http_error": "The issuer returned an unexpected error ({detail})."
+    "http_error": "The issuer returned an unexpected error ({detail}).",
+    "unsupported_file": "Upload a PDF, or a JPG, PNG or WebP photo or scan of the document.",
+    "pdf_unreadable": "This PDF could not be opened. It may be damaged or password-protected.",
+    "all_match_with_warnings": "All printed fields match the issuer record, with points to review.",
+    "integrity_concerns": "The document matches the issuer record, but other checks raise integrity concerns. Review before accepting.",
+    "scan_invalid_image": "The image file could not be read. Take a new photo or scan.",
+    "scan_low_resolution": "The image is too small ({w}x{h}). Hold the camera closer or scan at a higher resolution.",
+    "scan_blur": "The image is too blurry to read. Hold the camera steady and refocus.",
+    "scan_dark": "The image is too dark to read. Improve the lighting and take it again.",
+    "scan_glare": "The image is washed out or has glare. Avoid flash reflections and take it again.",
+    "scan_quality_ok": "Image quality is good enough to read.",
+    "scan_rectified": "The page was found and straightened.",
+    "scan_rectify_fallback": "No page outline found; the whole image was used.",
+    "scan_ocr_unavailable": "Reading photos and scans is not available on this server (the OCR engine, Tesseract, is not installed).",
+    "scan_unreadable": "Very little text could be read from this image.",
+    "scan_rescan_hint": "Place the whole page flat and in focus, in even light, with the QR code in frame, and try again.",
+    "scan_low_confidence": "{field} could only be read with low confidence ({conf}%).",
+    "scan_inconsistent": "Two readings of {field} disagree.",
+    "scan_field_missing": "{field} could not be found in the image.",
+    "scan_field_low": "{field} was read with low confidence.",
+    "scan_field_inconsistent": "Two readings of {field} disagree.",
+    "scan_ocr_ok": "Text was read (lowest field confidence {conf}%).",
+    "scan_read_caveat": "These values were read from an image. If the printed text looks different, rescan before acting.",
+    "qr_none": "No QR code could be read on this image.",
+    "qr_plain": "QR code read; it holds a certificate number.",
+    "signed_qr_valid": "The QR is signed by the issuer and its signature is valid (key {kid}).",
+    "qr_sig_malformed": "The QR looks like a signed token but is damaged or malformed.",
+    "qr_sig_unknown_key": "The QR is signed with a key Pramanik does not recognise for this issuer.",
+    "qr_sig_key_revoked": "The QR is signed with a key the issuer has revoked.",
+    "qr_sig_bad_signature": "The QR's signature does not verify. The QR may have been altered or forged.",
+    "qr_sig_no_keys": "No issuer signing keys are configured, so the QR signature could not be checked.",
+    "signed_field_mismatch": "{field} on the document differs from the issuer-signed QR.",
+    "signed_type_mismatch": "The issuer-signed QR is for a different type of document.",
+    "link_insecure": "The document contains an insecure (http) link: {url}",
+    "link_shortener": "The document contains a shortened link ({host}); official certificates link to official domains.",
+    "link_lookalike": "The document contains a link that imitates an official domain ({host}).",
+    "link_unknown": "The document links to an unverified domain: {host}",
+    "reuse_other_cases": "This certificate has already been checked in {count} other case(s).",
+    "reuse_many": "This certificate has been presented in {count} other cases, which is unusual.",
+    "stamp_reuse": "The stamp area is identical to one on a different certificate checked earlier.",
+    "risk_verdict": "Result: {verdict}.",
+    "risk_ocr": "Read from an image, which is less reliable than a text PDF.",
+    "risk_low_confidence": "Some text was read with low confidence ({conf}%).",
+    "risk_signature_valid": "The QR carries a valid issuer signature.",
+    "issuer_cached": "The issuer's answer was reused from {minutes} minute(s) ago. Tick \"Ask the issuer again\" for a live check."
   },
   "samples": [
     {
@@ -210,6 +257,140 @@
           "digital_signature": "not_applicable"
         }
       }
+    },
+    {
+      "label": "Genuine photo",
+      "result": {
+        "verdict": "VERIFIED",
+        "route": "direct_issuer",
+        "input_type": "scan",
+        "coverage": "4 of 4 printed fields confirmed with issuer",
+        "reasons": [
+          "All printed fields match the issuer record."
+        ],
+        "fields": [
+          {
+            "field": "certificate_number",
+            "document": "INC-2026-0412",
+            "issuer": "INC-2026-0412",
+            "match": true,
+            "confidence": 96
+          },
+          {
+            "field": "holder_name",
+            "document": "Ravi Kumar",
+            "issuer": "Ravi Kumar",
+            "match": true,
+            "confidence": 94
+          },
+          {
+            "field": "issue_date",
+            "document": "2026-03-01",
+            "issuer": "2026-03-01",
+            "match": true,
+            "confidence": 95
+          },
+          {
+            "field": "income_amount",
+            "document": "180000",
+            "issuer": "180000",
+            "match": true,
+            "confidence": 93
+          }
+        ],
+        "checks": {
+          "qr_consistency": "pass",
+          "digital_signature": "valid",
+          "quality_gate": "pass",
+          "ocr_confidence": "pass"
+        },
+        "signals": [],
+        "rescan_guidance": null
+      }
+    },
+    {
+      "label": "Forged QR",
+      "result": {
+        "verdict": "MATCHES_RECORD_INTEGRITY_CONCERNS",
+        "route": "direct_issuer",
+        "input_type": "pdf",
+        "coverage": "4 of 4 printed fields confirmed with issuer",
+        "reasons": [
+          "The document matches the issuer record, but other checks raise integrity concerns. Review before accepting.",
+          "The QR's signature does not verify. The QR may have been altered or forged."
+        ],
+        "fields": [
+          {
+            "field": "certificate_number",
+            "document": "INC-2026-0412",
+            "issuer": "INC-2026-0412",
+            "match": true
+          },
+          {
+            "field": "holder_name",
+            "document": "Ravi Kumar",
+            "issuer": "Ravi Kumar",
+            "match": true
+          },
+          {
+            "field": "issue_date",
+            "document": "2026-03-01",
+            "issuer": "2026-03-01",
+            "match": true
+          },
+          {
+            "field": "income_amount",
+            "document": "180000",
+            "issuer": "180000",
+            "match": true
+          }
+        ],
+        "checks": {
+          "qr_consistency": "not_applicable",
+          "pdf_metadata": "not_applicable",
+          "digital_signature": "invalid"
+        },
+        "signals": [
+          {
+            "name": "signed_qr_invalid_signature",
+            "severity": "strong",
+            "detail": "The QR's signature does not verify. The QR may have been altered or forged.",
+            "region": null
+          }
+        ],
+        "rescan_guidance": null
+      }
+    },
+    {
+      "label": "Blurry photo",
+      "result": {
+        "verdict": "RESCAN",
+        "route": "none",
+        "input_type": "scan",
+        "coverage": "No printed fields confirmed with issuer",
+        "reasons": [
+          "The image is too blurry to read. Hold the camera steady and refocus."
+        ],
+        "fields": [],
+        "checks": {
+          "quality_gate": "fail"
+        },
+        "signals": [
+          {
+            "name": "quality_blur",
+            "severity": "fail",
+            "detail": "The image is too blurry to read. Hold the camera steady and refocus.",
+            "region": null
+          }
+        ],
+        "rescan_guidance": "The image is too blurry to read. Hold the camera steady and refocus."
+      }
     }
-  ]
+  ],
+  "risk_labels": {
+    "low": "Low risk",
+    "medium": "Medium risk",
+    "high": "High risk",
+    "not_assessed": "Not assessed"
+  }
 }

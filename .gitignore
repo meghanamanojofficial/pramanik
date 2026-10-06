@@ -2,6 +2,14 @@
 backend/.env
 issuer_service/keys.json
 issuer_service/audit.jsonl
+issuer_service/signing_keys/
+backend/config/issuer_keys.json
+backend/data/
+*.db
+
+# generated demo documents (signed with this machine's key)
+demo_docs/pdfs/
+demo_docs/scans/
 __pycache__/
 
 # Windows download markers

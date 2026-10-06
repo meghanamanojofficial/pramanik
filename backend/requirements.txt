@@ -1,4 +1,4 @@
-# Used by both services (issuer_service/ shares this file) and by the tests / PDF generator.
+# Used by both services (issuer_service/ shares this file) and by the tests / demo-document generators.
 fastapi
 uvicorn[standard]
 python-multipart
@@ -11,5 +11,11 @@ rapidfuzz
 requests
 reportlab
 qrcode[pil]
+# Photos and scans: OCR (also needs the Tesseract program itself, see README), perceptual hashing for the stamp check.
+pytesseract
+imagehash
+# Signed QR codes (Ed25519) and the reuse ledger.
+cryptography
+sqlalchemy
 # Optional QR fallback; needs the zbar system library (apt install libzbar0 / brew install zbar).
 pyzbar

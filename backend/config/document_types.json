@@ -13,7 +13,8 @@
           "name": "certificate_number",
           "label": "Certificate No",
           "value_pattern": "INC-\\d{4}-\\d{4}",
-          "compare": { "method": "exact" }
+          "compare": { "method": "exact" },
+          "ocr_repair": true
         },
         {
           "name": "holder_name",
@@ -25,14 +26,16 @@
           "name": "issue_date",
           "label": "Issue Date",
           "value_pattern": "\\d{4}-\\d{2}-\\d{2}",
-          "compare": { "method": "exact" }
+          "compare": { "method": "exact" },
+          "ocr_repair": true
         },
         {
           "name": "income_amount",
           "label": "Annual income",
           "value_pattern": "[\\d,]+",
           "normalize": ["digits_only"],
-          "compare": { "method": "exact" }
+          "compare": { "method": "exact" },
+          "ocr_repair": true
         }
       ]
     }

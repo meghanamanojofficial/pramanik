@@ -1,0 +1,31 @@
+{
+  "not_assessed_verdicts": ["RESCAN", "INCONCLUSIVE", "UNVERIFIABLE"],
+  "levels": { "medium": 25, "high": 60 },
+
+  "verdict_points": {
+    "VERIFIED": 0,
+    "VERIFIED_WITH_WARNINGS": 10,
+    "MATCHES_RECORD_INTEGRITY_CONCERNS": 30,
+    "MISMATCH": 80,
+    "SUSPICIOUS": 85
+  },
+
+  "severity_points": { "ok": 0, "weak": 8, "strong": 25, "fail": 40 },
+  "signal_points": {
+    "qr_none": 5,
+    "unknown_link_domain": 6,
+    "insecure_http_link": 20,
+    "malicious_link_domain": 30,
+    "duplicate_scan_prior": 8,
+    "duplicate_scan_excessive": 30,
+    "stamp_reuse_detected": 35,
+    "signed_qr_invalid_signature": 30,
+    "signed_qr_type_mismatch": 30,
+    "signed_qr_field_mismatch": 40
+  },
+
+  "read_by_ocr_points": 3,
+  "low_ocr_confidence_below": 80,
+  "low_ocr_confidence_points": 5,
+  "valid_signature_points": -10
+}

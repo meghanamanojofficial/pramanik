@@ -28,6 +28,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from . import config
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 _env_loaded = False
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -51,19 +53,12 @@ class IssuerResult:
 
 
 def _load_dotenv() -> None:
-    """Minimal .env reader; real environment variables always win."""
+    """Read backend/.env (real environment variables always win). Kept as a function so tests can stub it."""
     global _env_loaded
     if _env_loaded:
         return
     _env_loaded = True
-    path = BACKEND_DIR / ".env"
-    if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
+    config.load_env()
 
 
 def load_config() -> list:

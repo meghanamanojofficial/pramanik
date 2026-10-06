@@ -9,8 +9,8 @@
   color-scheme: light dark;
   --bg: #eef1f4; --surface: #ffffff; --ink: #16202b; --muted: #55616e; --rule: #d3d9e0;
   --field: #f6f8fa; --focus: #1d5fd1; --primary: #16324f; --on-primary: #ffffff;
-  --green: #1e7b4f; --amber: #a85f00; --red: #b3261e; --grey: #5a6672;
-  --green-bg: #e3f3ea; --amber-bg: #fbeed7; --red-bg: #fbe4e2; --grey-bg: #e8ebee;
+  --green: #1e7b4f; --amber: #a85f00; --red: #b3261e; --grey: #5a6672; --blue: #1d5fd1;
+  --green-bg: #e3f3ea; --amber-bg: #fbeed7; --red-bg: #fbe4e2; --grey-bg: #e8ebee; --blue-bg: #e8f0fe;
   --mark: #ffd9d5;
   --serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
   --sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -20,8 +20,8 @@
   :root {
     --bg: #0f1419; --surface: #171e26; --ink: #e6ebf0; --muted: #9aa6b2; --rule: #2a3440;
     --field: #1d252e; --focus: #7fb0ff; --primary: #d7e3f1; --on-primary: #0f1419;
-    --green: #4cc38a; --amber: #e3a33b; --red: #f2706a; --grey: #9aa6b2;
-    --green-bg: #17302447; --amber-bg: #3a2b1052; --red-bg: #3d1c1a52; --grey-bg: #25303a;
+    --green: #4cc38a; --amber: #e3a33b; --red: #f2706a; --grey: #9aa6b2; --blue: #7fb0ff;
+    --green-bg: #17302447; --amber-bg: #3a2b1052; --red-bg: #3d1c1a52; --grey-bg: #25303a; --blue-bg: #1e3a5f47;
     --mark: #6b2a26;
   }
 }
@@ -60,6 +60,7 @@ input[type=text], select {
 .drop span { color: var(--muted); font-size: 13px; }
 .msg { min-height: 1.4em; margin: 6px 0 0; color: var(--red); font-size: 13px; }
 .preview-box { margin-top: 10px; }
+.preview-box img { width: 100%; max-height: 260px; object-fit: contain; border: 1px solid var(--rule); border-radius: 6px; background: #fff; }
 .preview-box iframe { width: 100%; height: 260px; border: 1px solid var(--rule); border-radius: 6px; background: #fff; }
 
 button.primary {
@@ -92,6 +93,9 @@ button.quiet:hover { border-color: var(--focus); }
 .v-verified { --vc: var(--green); --vbg: var(--green-bg); }
 .v-suspicious { --vc: var(--amber); --vbg: var(--amber-bg); }
 .v-mismatch { --vc: var(--red); --vbg: var(--red-bg); }
+.v-verified_with_warnings, .v-matches_record_integrity_concerns { --vc: var(--amber); --vbg: var(--amber-bg); }
+.v-rescan { --vc: var(--blue); --vbg: var(--blue-bg); }
+.v-inconclusive { --vc: var(--grey); --vbg: var(--grey-bg); }
 .v-unverifiable { --vc: var(--grey); --vbg: var(--grey-bg); }
 .dot.vd { background: var(--vc); }
 
@@ -148,6 +152,28 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
 .audit code { font: 12px/1.4 var(--mono); word-break: break-all; color: var(--muted); }
 .empty-state, .error-state { padding: 28px 8px; text-align: center; color: var(--muted); }
 .error-state { color: var(--red); }
+.rescan-alert { padding: 12px 16px; border-radius: 6px; background: var(--blue-bg); border: 1px solid var(--blue); margin: 0 0 16px; font-size: 14px; }
+.rescan-alert strong { display: block; margin-bottom: 4px; color: var(--blue); }
+.risk { margin: 0 0 16px; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px; font-size: 14px; }
+.risk summary { cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.risk .score { font: 700 20px var(--serif); }
+.risk .lvl { font-weight: 600; }
+.risk.low .lvl { color: var(--green); } .risk.medium .lvl { color: var(--amber); } .risk.high .lvl { color: var(--red); }
+.risk.not_assessed .lvl { color: var(--grey); }
+.risk ul { margin: 10px 0 2px; padding-left: 0; list-style: none; }
+.risk li { display: flex; gap: 10px; padding: 3px 0; }
+.risk li b { min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+.risk li b.up { color: var(--red); } .risk li b.down { color: var(--green); }
+.risk .hint { margin: 8px 0 0; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check input { width: auto; }
+.notes { margin: 0 0 16px; padding-left: 18px; font-size: 14px; }
+.notes li.strong, .notes li.fail { color: var(--red); }
+.notes li.weak { color: var(--amber); }
+.conf { display: block; font: 12px var(--sans); color: var(--muted); }
+.conf.low { color: var(--amber); }
+.stamp { font-size: 22px; }
+#camera { display: none; margin-top: 8px; }
 .empty-state strong, .error-state strong { display: block; margin-bottom: 4px; font-size: 16px; color: inherit; }
 </style>
 </head>
@@ -177,17 +203,23 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
             <select id="purpose"></select>
           </div>
           <div class="row">
-            <label id="dropLabel" for="file">PDF certificate</label>
-            <input type="file" id="file" class="sr" accept="application/pdf,.pdf" tabindex="-1">
+            <label id="dropLabel" for="file">Certificate: PDF, photo or scan</label>
+            <input type="file" id="file" class="sr" accept="application/pdf,image/*,.pdf" tabindex="-1">
+            <input type="file" id="cameraInput" class="sr" accept="image/*" capture="environment" tabindex="-1">
             <button type="button" class="drop" id="drop" aria-labelledby="dropLabel dropText">
-              <strong id="dropText">Drop a PDF here or choose a file</strong>
-              <span id="dropName">Text-based PDF</span>
+              <strong id="dropText">Drop a file here or choose one</strong>
+              <span id="dropName">PDF, JPG, PNG or WebP</span>
             </button>
+            <button type="button" class="quiet" id="camera">Take a photo</button>
             <p class="msg" id="fileMsg" role="alert"></p>
             <div class="preview-box" id="previewBox" hidden>
-              <iframe id="preview" title="Preview of the selected PDF"></iframe>
+              <iframe id="preview" title="Preview of the selected PDF" hidden></iframe>
+              <img id="previewImg" alt="Preview of the selected photo or scan" hidden>
               <p class="hint">The preview stays in your browser.</p>
             </div>
+          </div>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="fresh"> Ask the issuer again (skip a saved recent answer)</label>
           </div>
           <button type="submit" class="primary" id="verify" disabled>Verify document</button>
         </form>
@@ -229,13 +261,15 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
 
   var STEPS = ["Upload", "Read document", "Read QR", "Ask issuer", "Verdict"];
   var NOTES = { "not found": 1, "not queried": 1, "unreachable": 1, "unavailable": 1 };
+  var CONF_LOW = 60; /* matches ocr.field_confidence_min in config/scan.json */
   /* Defaults, replaced by GET /api/ui-config (backend/config/ui.json) as soon as it loads. */
-  var UI = { max_upload_mb: null, verdict_labels: {}, samples: [] };
+  var UI = { max_upload_mb: null, verdict_labels: {}, risk_labels: {}, samples: [] };
+  var INPUT_LABELS = { pdf: "Digital PDF", scan: "Photo or scan", scanned_pdf: "Scanned PDF (read by OCR)" };
   var file = null, objectUrl = null, running = false, timer = null, recent = [];
 
   /* ---------- helpers ---------- */
   function verdictClass(v) {
-    return "v-" + (["VERIFIED", "SUSPICIOUS", "MISMATCH", "UNVERIFIABLE"].indexOf(v) > -1 ? String(v).toLowerCase() : "unverifiable");
+    return "v-" + (UI.verdict_labels[v] ? String(v).toLowerCase() : "unverifiable");
   }
   function humanise(s) {
     s = String(s || "").replace(/_/g, " ");
@@ -336,7 +370,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     var head = el("div", "verdict");
     head.appendChild(el("div", "stamp", UI.verdict_labels[res.verdict] || res.verdict || "UNVERIFIABLE"));
     var meta = el("dl", "meta");
-    [["Route", res.route], ["Coverage", res.coverage], ["Input type", res.input_type]].forEach(function (p) {
+    [["Route", res.route], ["Coverage", res.coverage], ["Input type", INPUT_LABELS[res.input_type] || res.input_type]].forEach(function (p) {
       meta.appendChild(el("dt", null, p[0]));
       meta.appendChild(el("dd", null, p[1] || "\u2014"));
     });
@@ -354,6 +388,14 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
         bar.appendChild(s);
       });
       wrap.appendChild(bar);
+    }
+
+    if (res.rescan_guidance) {
+      var alert = el("div", "rescan-alert");
+      alert.setAttribute("role", "status");
+      alert.appendChild(el("strong", null, "How to get a better image"));
+      alert.appendChild(el("span", null, res.rescan_guidance));
+      wrap.appendChild(alert);
     }
 
     var reasons = Array.isArray(res.reasons) ? res.reasons : [];
@@ -389,6 +431,9 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
         } else {
           cDoc.textContent = doc || "\u2014"; cIss.textContent = iss || "\u2014";
         }
+        if (typeof f.confidence === "number") {
+          cDoc.appendChild(el("span", "conf" + (f.confidence < CONF_LOW ? " low" : ""), "read with " + f.confidence + "% confidence"));
+        }
         tr.appendChild(cDoc); tr.appendChild(cIss);
         var label = f.match ? "Match" : (isNote ? "Not confirmed" : "Mismatch");
         tr.appendChild(el("td", f.match ? "res-yes" : (isNote ? "res-na" : "res-no"), (f.match ? "\u2713 " : (isNote ? "\u2013 " : "\u2717 ")) + label));
@@ -397,13 +442,41 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
       table.appendChild(tbody); tw.appendChild(table); wrap.appendChild(tw);
     }
 
+    if (res.risk && typeof res.risk === "object") {
+      var rk = res.risk, box = el("details", "risk " + (rk.level || "not_assessed"));
+      var sum = el("summary");
+      sum.appendChild(el("span", "score", rk.score === null || rk.score === undefined ? "\u2014" : rk.score + "/100"));
+      sum.appendChild(el("span", "lvl", (UI.risk_labels && UI.risk_labels[rk.level]) || rk.level));
+      box.appendChild(sum);
+      if (Array.isArray(rk.factors) && rk.factors.length) {
+        var fl = el("ul");
+        rk.factors.forEach(function (f) {
+          var li = el("li");
+          li.appendChild(el("b", f.points > 0 ? "up" : "down", (f.points > 0 ? "+" : "") + f.points));
+          li.appendChild(el("span", null, f.detail));
+          fl.appendChild(li);
+        });
+        box.appendChild(fl);
+      }
+      box.appendChild(el("p", "hint", "A triage aid built from the checks above. It does not change the result and is not proof of anything."));
+      wrap.appendChild(box);
+    }
+
+    var notes = (Array.isArray(res.signals) ? res.signals : []).filter(function (n) { return n.severity !== "ok"; });
+    if (notes.length) {
+      wrap.appendChild(el("h3", "sr", "Notes"));
+      var nul = el("ul", "notes");
+      notes.forEach(function (n) { nul.appendChild(el("li", n.severity, n.detail)); });
+      wrap.appendChild(nul);
+    }
+
     var keys = Object.keys(checks);
     if (keys.length) {
       var chips = el("ul", "chips");
       chips.setAttribute("aria-label", "Checks");
       keys.forEach(function (k) {
         var v = String(checks[k]);
-        chips.appendChild(el("li", "chip " + (v === "pass" ? "pass" : v === "fail" ? "fail" : ""), humanise(k) + ": " + v.replace(/_/g, " ")));
+        chips.appendChild(el("li", "chip " + (v === "pass" || v === "valid" ? "pass" : v === "fail" || v === "invalid" || v === "flagged" ? "fail" : ""), humanise(k) + ": " + v.replace(/_/g, " ")));
       });
       wrap.appendChild(chips);
     }
@@ -476,7 +549,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
 
   /* ---------- file handling ---------- */
   function dropHint() {
-    return UI.max_upload_mb ? "Text-based PDF, up to " + UI.max_upload_mb + " MB" : "Text-based PDF";
+    return UI.max_upload_mb ? "PDF, JPG, PNG or WebP, up to " + UI.max_upload_mb + " MB" : "PDF, JPG, PNG or WebP";
   }
   function updateButton() {
     $("verify").disabled = running || !file || !$("caseid").value.trim();
@@ -485,6 +558,8 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
     file = null;
     $("preview").removeAttribute("src");
+    $("previewImg").removeAttribute("src");
+    $("preview").hidden = $("previewImg").hidden = true;
     $("previewBox").hidden = true;
     $("dropName").textContent = dropHint();
   }
@@ -492,22 +567,28 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     $("fileMsg").textContent = "";
     if (!f) return;
     var isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
-    if (!isPdf) {
+    var isImage = /^image\/(jpeg|png|webp)$/.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name);
+    if (!isPdf && !isImage) {
       clearFile();
-      $("fileMsg").textContent = "Only PDF files are supported. Choose a PDF and try again.";
+      $("fileMsg").textContent = "Choose a PDF, or a JPG, PNG or WebP photo or scan.";
       updateButton();
       return;
     }
     clearFile();
     file = f;
     objectUrl = URL.createObjectURL(f);
-    $("preview").src = objectUrl;
+    var pv = isPdf ? $("preview") : $("previewImg");
+    pv.hidden = false;
+    pv.src = objectUrl;
     $("previewBox").hidden = false;
     $("dropName").textContent = f.name;
     updateButton();
   }
 
-  var drop = $("drop"), input = $("file");
+  var drop = $("drop"), input = $("file"), camInput = $("cameraInput");
+  if (navigator.maxTouchPoints > 0) { $("camera").style.display = "inline-block"; }
+  $("camera").addEventListener("click", function () { camInput.click(); });
+  camInput.addEventListener("change", function () { chooseFile(camInput.files && camInput.files[0]); camInput.value = ""; });
   drop.addEventListener("click", function () { input.click(); });
   input.addEventListener("change", function () { chooseFile(input.files && input.files[0]); input.value = ""; });
   ["dragenter", "dragover"].forEach(function (t) {
@@ -529,7 +610,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
   function run() {
     if (running || !file || !$("caseid").value.trim()) return;
     running = true; updateButton();
-    setResult(emptyState("Checking the document", "This usually takes a few seconds."));
+    setResult(emptyState("Checking the document", "PDFs take a few seconds; photos and scans can take up to half a minute."));
     var step = 0;
     drawTrail({ done: 0, active: 0 });
     timer = setInterval(function () {
@@ -541,6 +622,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     fd.append("officer_id", $("officer").value.trim());
     fd.append("case_id", $("caseid").value.trim());
     fd.append("purpose", $("purpose").value);
+    if ($("fresh").checked) fd.append("fresh", "1");
 
     fetch("/verify", { method: "POST", body: fd })
       .then(function (resp) {
@@ -556,7 +638,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
         }
         drawTrail({ done: 5, active: -1 });
         render(r.data, false);
-        addRecent(r.data, file ? file.name : "document.pdf");
+        addRecent(r.data, file ? file.name : "document");
       })
       .catch(function () {
         clearInterval(timer);
@@ -586,7 +668,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
   /* ---------- initial state ---------- */
   drawTrail({ done: 0, active: -1 });
   drawRecent();
-  setResult(emptyState("No result yet", "Choose a PDF, enter a case ID and select Verify document."));
+  setResult(emptyState("No result yet", "Choose a PDF, photo or scan, enter a case ID and select Verify document."));
 })();
 </script>
 </body>

@@ -9,6 +9,7 @@ Ports are fixed: issuer service 8002 (backend/config/issuers.json points there),
 Press Ctrl+C to stop both.
 """
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -22,13 +23,22 @@ ISSUER_URL, BACKEND_URL = "http://127.0.0.1:8002", "http://127.0.0.1:8001"
 
 
 def ensure_keys() -> None:
-    if (BACKEND / ".env").exists() and (ISSUER / "keys.json").exists():
-        return
-    print("First run: creating API keys (never committed)...")
+    """API keys, QR signing keys and the ledger secret. Signing keys are per machine, so the demo
+    documents (which carry signed QR codes) are regenerated whenever new keys are made."""
     sys.path.insert(0, str(ISSUER))
     import setup_keys
 
+    have_all = ((BACKEND / ".env").exists() and (ISSUER / "keys.json").exists()
+                and (BACKEND / "config" / "issuer_keys.json").exists()
+                and "PRAMANIK_FINGERPRINT_KEY" in setup_keys.read_env(BACKEND / ".env"))
+    if have_all:
+        return
+    print("First run: creating keys (never committed)...")
     setup_keys.main()
+    setup_keys.setup_signing()
+    setup_keys.setup_fingerprint_key()
+    for script in ("make_test_pdfs.py", "make_scan_samples.py"):
+        subprocess.call([sys.executable, f"tools/{script}"], cwd=BACKEND)
 
 
 def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int = 30) -> None:
@@ -48,7 +58,7 @@ def serve(cwd: Path, app: str, port: int, reload: bool) -> subprocess.Popen:
     cmd = [sys.executable, "-m", "uvicorn", app, "--port", str(port)]
     if reload:
         cmd.append("--reload")
-    return subprocess.Popen(cmd, cwd=cwd)
+    return subprocess.Popen(cmd, cwd=cwd)  # inherits os.environ (see main(): --test gives it a fresh ledger)
 
 
 def stop(procs) -> None:
@@ -65,7 +75,9 @@ def stop(procs) -> None:
 def run_tests() -> int:
     steps = [
         ("generate test PDFs", [sys.executable, "tools/make_test_pdfs.py"], BACKEND),
+        ("generate sample scans", [sys.executable, "tools/make_scan_samples.py"], BACKEND),
         ("issuer + pipeline unit tests", [sys.executable, "-m", "unittest", "discover", "-s", "issuer_service/tests"], ROOT),
+        ("scan, signing and ledger unit tests", [sys.executable, "-m", "unittest", "discover", "-s", "backend/tests", "-p", "test_*.py"], ROOT),
         ("acceptance tests", [sys.executable, "tests/run_acceptance.py"], BACKEND),
     ]
     failed = 0
@@ -85,6 +97,9 @@ def main() -> int:
     args = ap.parse_args()
 
     ensure_keys()
+    if args.test:  # the acceptance tests expect an empty reuse ledger
+        import tempfile
+        os.environ["DATABASE_URL"] = "sqlite:///" + (Path(tempfile.mkdtemp()) / "acceptance.db").as_posix()
     procs = []
     try:
         issuer = serve(ISSUER, "main:app", 8002, args.reload)

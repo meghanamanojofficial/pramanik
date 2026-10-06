@@ -11,8 +11,9 @@ AUDIT_FILE = Path(__file__).resolve().parents[2] / "audit.log"
 _lock = threading.Lock()
 
 
-def write_audit(doc_hash: str, verdict: str, route: str, officer_id: str, timestamp: str) -> None:
-    line = json.dumps({"doc_hash": doc_hash, "verdict": verdict, "route": route,
+def write_audit(doc_hash: str, verdict: str, route: str, officer_id: str, timestamp: str,
+                input_type: str = "pdf", issuer_source: str = "none") -> None:
+    line = json.dumps({"doc_hash": doc_hash, "verdict": verdict, "route": route, "input_type": input_type, "issuer_source": issuer_source,
                        "officer_id": officer_id, "officer_id_source": OFFICER_ID_SOURCE,
                        "timestamp": timestamp}, separators=(",", ":"))
     with _lock, AUDIT_FILE.open("a", encoding="utf-8") as f:

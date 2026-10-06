@@ -1,0 +1,48 @@
+{
+  "image_types": ["image/jpeg", "image/png", "image/webp"],
+  "max_image_pixels": 60000000,
+  "max_concurrent_scans": 2,
+
+  "scanned_pdf": {
+    "min_text_chars": 40,
+    "dpi": 200
+  },
+
+  "quality": {
+    "min_width": 600,
+    "min_height": 600,
+    "blur_laplacian_min": 60,
+    "paper_brightness_min": 110,
+    "ink_contrast_min": 60,
+    "glare_saturated_fraction": 0.06,
+    "glare_paper_median_max": 235
+  },
+
+  "ocr": {
+    "max_dimension": 2400,
+    "field_confidence_min": 60,
+    "overall_confidence_min": 45,
+    "second_pass_below": 85,
+    "tesseract_cmd": "",
+    "type_match_score": 88
+  },
+
+  "links": {
+    "allowed_domains": [
+      "edistrict.kerala.gov.in",
+      "revenue.gov.in",
+      "pramanik.gov.in",
+      "services.india.gov.in",
+      "kerala.gov.in"
+    ],
+    "shorteners": ["bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd", "buff.ly", "ow.ly"]
+  },
+
+  "reuse": {
+    "applies_to": ["pdf", "scan"],
+    "warn_from_other_cases": 1,
+    "strong_from_other_cases": 4,
+    "stamp_hamming_max": 6,
+    "stamp_min_ink_fraction": 0.02
+  }
+}
