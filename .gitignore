@@ -1,0 +1,5 @@
+# --- API keys: never commit ---
+backend/.env
+issuer_service/keys.json
+issuer_service/audit.jsonl
+__pycache__/

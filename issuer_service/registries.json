@@ -1,0 +1,10 @@
+{
+  "registries": [
+    {
+      "issuer_id": "revenue_dept",
+      "name": "Revenue Department",
+      "prefix": "INC-",
+      "file": "../backend/data/mock_records.json"
+    }
+  ]
+}

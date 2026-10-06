@@ -1,0 +1,12 @@
+{
+  "issuers": [
+    {
+      "issuer_id": "revenue_dept",
+      "name": "Revenue Department",
+      "prefixes": ["INC-"],
+      "base_url": "http://localhost:8002",
+      "api_key_env": "ISSUER_KEY_REVENUE_DEPT",
+      "timeout_seconds": 5
+    }
+  ]
+}

@@ -9,6 +9,7 @@ from pathlib import Path
 from rapidfuzz import fuzz
 
 from .base import IssuerResult
+from ..issuer_client import lookup
 
 RECORDS_FILE = Path(__file__).resolve().parents[2] / "data" / "mock_records.json"
 
@@ -62,16 +63,15 @@ def _field_matches(field: str, document_value: str, issuer_value: str) -> bool:
         return fuzz.token_sort_ratio(a, b) >= NAME_THRESHOLD
     return a == b
 
-
 def verify(certificate_number: str, fields: dict[str, str]) -> IssuerResult:
-    records = load_records()
-    if records is None:
-        return {"reachable": False, "found": False, "status": "", "matches": {}, "values": {}}
-
     wanted = _norm("certificate_number", certificate_number)
-    record = next((r for r in records if r["certificate_number"] == wanted), None)
-    if record is None:
+    result = lookup(wanted)  # HTTP call to the issuer service, with the API key
+
+    if result.outcome in ("unavailable", "unconnected"):
+        return {"reachable": False, "found": False, "status": "", "matches": {}, "values": {}}
+    if result.outcome == "not_found":
         return {"reachable": True, "found": False, "status": "", "matches": {}, "values": {}}
+    record = result.record
 
     matches = {f: _field_matches(f, fields.get(f, ""), record[f]) for f in _FIELDS}
     values = {f: record[f] for f in _FIELDS}
