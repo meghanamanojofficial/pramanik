@@ -4,12 +4,14 @@
     python run_all.py            # create keys if missing, start both services, open on http://localhost:8001
     python run_all.py --reload   # same, with auto-reload for development
     python run_all.py --test     # start both, generate the test PDFs, run every test, then stop
+    python run_all.py --host 0.0.0.0   # reachable from other machines (put HTTPS in front: see deploy/README.md)
 
 Ports are fixed: issuer service 8002 (backend/config/issuers.json points there), Pramanik 8001.
 Press Ctrl+C to stop both.
 """
 import argparse
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -37,8 +39,18 @@ def ensure_keys() -> None:
     setup_keys.main()
     setup_keys.setup_signing()
     setup_keys.setup_fingerprint_key()
-    for script in ("make_test_pdfs.py", "make_scan_samples.py"):
-        subprocess.call([sys.executable, f"tools/{script}"], cwd=BACKEND)
+    ensure_demo_docs(force=True)
+
+
+def ensure_demo_docs(force: bool = False) -> None:
+    """The demo PDFs and photos are generated per machine (they carry QR codes signed with this machine's key).
+    A production deployment sets PRAMANIK_SKIP_DEMO_DOCS=1: it has no use for sample certificates."""
+    if os.environ.get("PRAMANIK_SKIP_DEMO_DOCS") == "1":
+        return
+    if force or not (ROOT / "demo_docs" / "scans" / "genuine_clean.jpg").exists() or not (ROOT / "demo_docs" / "pdfs" / "hostile_name.pdf").exists():
+        print("Creating the demo documents...")
+        for script in ("make_test_pdfs.py", "make_scan_samples.py"):
+            subprocess.call([sys.executable, f"tools/{script}"], cwd=BACKEND)
 
 
 def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int | None = None) -> None:
@@ -62,8 +74,8 @@ def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int | None = 
              f"backend/.env, or the port already being used by an earlier run.")
 
 
-def serve(cwd: Path, app: str, port: int, reload: bool) -> subprocess.Popen:
-    cmd = [sys.executable, "-m", "uvicorn", app, "--port", str(port)]
+def serve(cwd: Path, app: str, port: int, reload: bool, host: str = "127.0.0.1") -> subprocess.Popen:
+    cmd = [sys.executable, "-m", "uvicorn", app, "--host", host, "--port", str(port), "--proxy-headers"]
     if reload:
         cmd.append("--reload")
     return subprocess.Popen(cmd, cwd=cwd)  # inherits os.environ (see main(): --test gives it a fresh ledger)
@@ -88,6 +100,11 @@ def run_tests() -> int:
         ("scan, signing and ledger unit tests", [sys.executable, "-m", "unittest", "discover", "-s", "backend/tests", "-p", "test_*.py"], ROOT),
         ("acceptance tests", [sys.executable, "tests/run_acceptance.py"], BACKEND),
     ]
+    frontend = ROOT / "frontend"
+    if (frontend / "node_modules" / "jsdom").exists():
+        steps.append(("browser-style tests of the real pages", ["node", "tests/e2e.mjs"], frontend))
+    else:
+        print("\n(Skipping the browser-style page tests: run `npm install` in frontend/ to enable them.)")
     failed = 0
     for label, cmd, cwd in steps:
         print(f"\n=== {label} ===")
@@ -102,18 +119,24 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--reload", action="store_true", help="auto-reload on code changes")
     ap.add_argument("--test", action="store_true", help="run all tests against the started services, then stop")
+    ap.add_argument("--host", default="127.0.0.1", help="address for the Pramanik web server (default: this machine only)")
     args = ap.parse_args()
 
+    # `docker stop` / `systemctl stop` send SIGTERM: shut both servers down cleanly, as Ctrl+C does
+    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     ensure_keys()
-    if args.test:  # the acceptance tests expect an empty reuse ledger
+    ensure_demo_docs()
+    if args.test:  # the tests expect an empty reuse ledger and open sign-up (they create their own accounts)
         import tempfile
         os.environ["DATABASE_URL"] = "sqlite:///" + (Path(tempfile.mkdtemp()) / "acceptance.db").as_posix()
+        os.environ["PRAMANIK_SIGNUP_CODE"] = ""
+        os.environ["PRAMANIK_SIGNUP"] = "open"
     procs = []
     try:
-        issuer = serve(ISSUER, "main:app", 8002, args.reload)
+        issuer = serve(ISSUER, "main:app", 8002, args.reload)  # the issuer is only ever reached from this machine
         procs.append(issuer)
         wait_for(ISSUER_URL, "issuer service", issuer)
-        backend = serve(BACKEND, "app.main:app", 8001, args.reload)
+        backend = serve(BACKEND, "app.main:app", 8001, args.reload, args.host)
         procs.append(backend)
         wait_for(BACKEND_URL, "Pramanik backend", backend)
 
@@ -122,7 +145,7 @@ def main() -> int:
             print("\nALL TESTS PASSED" if not failed else f"\n{failed} test step(s) FAILED")
             return 1 if failed else 0
 
-        print(f"\nPramanik is running: {BACKEND_URL}   (issuer service: {ISSUER_URL})\nCtrl+C to stop.")
+        print(f"\nPramanik is running: open {BACKEND_URL}/ in a browser   (issuer service: {ISSUER_URL})\nCtrl+C to stop.")
         while all(p.poll() is None for p in procs):
             time.sleep(1)
         return 1

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Verification Pipeline</title>
+
+
+
+
+<!-- Typography & Global Background Styles -->
+<style data-purpose="global-styles">
+    body {
+      background-color: #0b0c11;
+      background-image: 
+        radial-gradient(circle at 85% 75%, rgba(26, 30, 58, 0.45) 0%, transparent 55%),
+        radial-gradient(circle at 15% 25%, rgba(18, 20, 32, 0.6) 0%, transparent 50%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      color: #ffffff;
+      overflow-x: hidden;
+    }
+  </style>
+<!-- Glassmorphism & Document Animation Styles -->
+<style data-purpose="interactive-effects">
+    .glass-card {
+      background: linear-gradient(135deg, rgba(28, 30, 42, 0.65) 0%, rgba(18, 20, 29, 0.85) 100%);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75), inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .doc-glass {
+      background: linear-gradient(180deg, rgba(32, 35, 48, 0.5) 0%, rgba(20, 22, 32, 0.65) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* Laser scanning effect moving up and down across the document */
+    @keyframes scanMotion {
+      0% {
+        top: 2%;
+        opacity: 0.2;
+      }
+      15% {
+        opacity: 1;
+      }
+      85% {
+        opacity: 1;
+      }
+      100% {
+        top: 96%;
+        opacity: 0.2;
+      }
+    }
+
+    .scanner-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.95) 25%, rgba(230, 240, 255, 1) 50%, rgba(255, 255, 255, 0.95) 75%, rgba(255, 255, 255, 0) 100%);
+      box-shadow: 0 0 16px 2px rgba(220, 235, 255, 0.8), 0 0 30px 6px rgba(180, 210, 255, 0.35);
+      animation: scanMotion 3.8s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+  </style>
+<link href="css/fonts.css" rel="stylesheet"/><link href="css/analysing.css" rel="stylesheet"/></head>
+<body class="font-sans antialiased selection:bg-blue-500 selection:text-white p-6">
+<!-- BEGIN: MainVerificationPipeline -->
+<main class="w-full max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 lg:gap-12" data-purpose="pipeline-container">
+<!-- BEGIN: DocumentPreviewCard -->
+<!-- Translucent document preview with scanned content placeholders and animated laser -->
+<div class="relative w-[340px] sm:w-[380px] h-[510px] rounded-3xl doc-glass p-8 flex flex-col justify-between overflow-hidden shrink-0" data-purpose="document-preview-card">
+<!-- Top section: Certificate Header & Candidate Details -->
+<div class="flex flex-col gap-3 relative z-0">
+<!-- Header row: Type & ID Badge -->
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-semibold tracking-wider text-indigo-400 uppercase" id="previewDocType">Document Under Analysis</span>
+<span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-slate-300" id="previewCaseId">#—</span>
+</div>
+<!-- Candidate Name & Award -->
+<div class="mt-1 space-y-1">
+<h3 class="text-xl font-bold tracking-tight text-slate-100 truncate" id="previewName">Reading document...</h3>
+<p class="text-sm font-semibold text-slate-300 truncate" id="previewFileName">document.pdf</p>
+<p class="text-xs text-slate-400 leading-snug" id="previewFileSize">—</p>
+</div>
+</div>
+<!-- Divider line -->
+<div class="h-px w-full bg-white/10 my-1"></div>
+<!-- Mid-body: Photo and Credential Metadata Fields -->
+<div class="flex items-center gap-4 py-2 relative z-0">
+<!-- Avatar / Photo placeholder -->
+<div class="w-20 h-24 rounded-xl border border-white/15 bg-white/[0.04] p-1.5 flex flex-col items-center justify-center shrink-0 relative overflow-hidden">
+<div class="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-1.5">
+<div class="w-4 h-4 rounded-full bg-white/20"></div>
+</div>
+<div class="w-11 h-4 rounded-t-full bg-white/15"></div>
+<span class="text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-wider" id="previewVerifiedStatus">In Progress</span>
+</div>
+<!-- Credential Details -->
+<div class="space-y-2 text-xs flex-1 min-w-0">
+<div>
+<span class="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Issuer Authority</span>
+<span class="text-slate-200 font-medium truncate block" id="previewIssuer">Revenue Department</span>
+</div>
+<div class="flex items-center justify-between gap-2">
+<div>
+<span class="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Audit Timestamp</span>
+<span class="text-slate-300 font-medium" id="previewDate">Just now</span>
+</div>
+<div>
+<span class="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Status</span>
+<span class="inline-flex items-center gap-1 text-indigo-400 font-medium" id="previewBadge">
+<span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+          Verifying
+        </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom section: Security Hash & Microprint lines -->
+<div class="pt-2 border-t border-white/10 space-y-2 relative z-0">
+<div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+<span class="tracking-wide" id="previewHashStatus">COMPUTING HASH</span>
+<span class="text-slate-500 truncate max-w-[150px]" id="previewSecureId">SECURE PIPELINE</span>
+</div>
+<!-- Microprint placeholder bars -->
+<div class="space-y-1.5 opacity-30">
+<div class="h-1 w-full bg-white/20 rounded-full"></div>
+<div class="h-1 w-4/5 bg-white/20 rounded-full"></div>
+</div>
+</div>
+<!-- Animated Scanning Line -->
+<div class="scanner-line"></div></div>
+<!-- END: DocumentPreviewCard -->
+<!-- BEGIN: StatusChecklistCard -->
+<!-- Pipeline stages checklist showing active and completed verifications -->
+<section class="w-full max-w-[440px] sm:w-[440px] h-[510px] rounded-3xl glass-card p-8 sm:p-10 flex flex-col justify-between shrink-0" data-purpose="verification-status-panel">
+<!-- Card Header -->
+<div>
+<h2 class="text-white text-2xl font-bold tracking-tight" id="pipelineHeading">Analysing document...</h2>
+<p class="text-xs text-slate-400 mt-1" id="pipelineSubheading">Checking the document and asking its issuer</p>
+</div>
+<!-- Pipeline Steps List -->
+<div class="space-y-3.5 py-1" data-purpose="pipeline-steps" id="pipelineStepsList">
+<!-- Step 1: File validation -->
+<div class="flex items-center justify-between text-slate-400 transition-all step-row" id="step-file">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0 step-indicator"></div>
+<span class="text-sm font-medium tracking-wide step-label">File &amp; format check</span>
+</div>
+<span class="text-xs font-mono step-status text-slate-500">Waiting</span>
+</div>
+<!-- Step 2: Text extraction -->
+<div class="flex items-center justify-between text-slate-400 transition-all step-row" id="step-text">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0 step-indicator"></div>
+<span class="text-sm font-medium tracking-wide step-label">Reading the document (text or OCR)</span>
+</div>
+<span class="text-xs font-mono step-status text-slate-500">Waiting</span>
+</div>
+<!-- Step 3: QR code decoding -->
+<div class="flex items-center justify-between text-slate-400 transition-all step-row" id="step-qr">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0 step-indicator"></div>
+<span class="text-sm font-medium tracking-wide step-label">QR code</span>
+</div>
+<span class="text-xs font-mono step-status text-slate-500">Waiting</span>
+</div>
+<!-- Step 4: Schema field extraction -->
+<div class="flex items-center justify-between text-slate-400 transition-all step-row" id="step-fields">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0 step-indicator"></div>
+<span class="text-sm font-medium tracking-wide step-label">Field extraction</span>
+</div>
+<span class="text-xs font-mono step-status text-slate-500">Waiting</span>
+</div>
+<!-- Step 5: Issuer authority lookup -->
+<div class="flex items-center justify-between text-slate-400 transition-all step-row" id="step-issuer">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0 step-indicator"></div>
+<span class="text-sm font-medium tracking-wide step-label" id="issuerStepLabel">Issuer lookup</span>
+</div>
+<span class="text-xs font-mono step-status text-slate-500">Waiting</span>
+</div>
+<!-- Step 6: Evidence & decision rules -->
+<div class="flex items-center justify-between text-slate-400 transition-all step-row" id="step-decision">
+<div class="flex items-center gap-3.5">
+<div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0 step-indicator"></div>
+<span class="text-sm font-medium tracking-wide step-label">Evidence &amp; verdict rules</span>
+</div>
+<span class="text-xs font-mono step-status text-slate-500">Waiting</span>
+</div>
+<!-- Step 7: Forensic analysis (truthfully marked N/A for digital vector PDF) -->
+
+</div>
+<!-- Error card / Retry button container -->
+<div class="hidden p-3.5 rounded-2xl bg-red-950/40 border border-red-500/30 text-xs text-red-200 mt-2" id="errorCard">
+<div class="font-semibold text-red-300 mb-1" id="errorTitle">Verification Error</div>
+<div class="text-slate-300 mb-3 leading-relaxed" id="errorDetail">Verification could not be completed.</div>
+<div class="flex items-center gap-2">
+<a class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs transition" href="maindash.html">Dashboard</a>
+<button class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-xs transition cursor-pointer" id="retryBtn" type="button">Retry</button>
+</div>
+</div>
+<!-- Bottom Spacer -->
+<div class="h-1"></div>
+</section>
+<!-- END: StatusChecklistCard -->
+</main>
+<!-- END: MainVerificationPipeline -->
+
+
+<script src="js/api.js"></script><script src="js/ui.js"></script><script src="js/analysing.js"></script></body></html>

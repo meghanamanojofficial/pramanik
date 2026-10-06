@@ -10,6 +10,7 @@ when running this by hand, start the backend with DATABASE_URL=sqlite:///<a new 
 """
 import json
 import os
+import secrets
 import sys
 import tempfile
 from pathlib import Path
@@ -29,7 +30,8 @@ SCANS = ROOT.parent / "demo_docs" / "scans"
 RECORDS = ROOT / CFG["records_file"]
 AUDIT = ROOT / CFG["audit_file"]
 CASE_ID = CFG["leak_check_case_id"]
-OFFICER = CFG["officer_id"]
+OFFICER = f'{CFG["officer_id"]}-{secrets.token_hex(2)}'  # unique per run: officer IDs belong to one account
+SESSION = requests.Session()
 TAMPER_FIELD, TAMPER_BY = CFG["tamper"]["field"], CFG["tamper"]["increase"]
 N_FIELDS = len(DOC["fields"])
 
@@ -49,7 +51,19 @@ def post(pdf: Path | None = None, *, case_id: str = CASE_ID, content: bytes | No
     if pdf is not None:  # any file: the server decides what it is from its bytes, not its name
         content, filename = pdf.read_bytes(), pdf.name
     files = {"file": (filename or "file.pdf", content or b"", "application/octet-stream")}
-    return requests.post(f"{BASE}/verify", data=data, files=files, timeout=120)
+    return SESSION.post(f"{BASE}/verify", data=data, files=files, timeout=120)
+
+
+def sign_in() -> None:
+    """A throwaway account for this run. /verify needs a signed-in officer with a completed profile."""
+    email = f"acceptance-{secrets.token_hex(4)}@example.test"
+    body = {"email": email, "password": "acceptance-" + secrets.token_hex(6), "signup_code": os.environ.get("ACCEPTANCE_SIGNUP_CODE", "")}
+    r = SESSION.post(f"{BASE}/api/auth/signup", json=body, timeout=30)
+    if r.status_code != 200:
+        sys.exit(f"Could not create the test account ({r.status_code}: {r.text}). If sign-up needs a code, set ACCEPTANCE_SIGNUP_CODE.")
+    r = SESSION.put(f"{BASE}/api/auth/profile", json={"full_name": "Acceptance Tester", "officer_id": OFFICER, "role": "Officer"}, timeout=30)
+    if r.status_code != 200:
+        sys.exit(f"Could not complete the test profile ({r.status_code}: {r.text})")
 
 
 def audit_lines() -> list[str]:
@@ -81,6 +95,13 @@ def main() -> int:
     # 1. health
     h = requests.get(f"{BASE}/health", timeout=10).json()
     record("1  GET /health", h == {"status": "ok", "records_loaded": len(records)}, str(h))
+    sign_in()
+    anon = requests.post(f"{BASE}/verify", data={"case_id": "x"}, files={"file": ("a.pdf", b"%PDF-")}, timeout=30)
+    record("1a signed out: /verify refuses, and so do history and the app pages",
+           anon.status_code == 401 and requests.get(f"{BASE}/api/history", timeout=30).status_code == 401
+           and requests.get(f"{BASE}/app/maindash.html", allow_redirects=False, timeout=30).status_code == 303, str(anon.status_code))
+    other = requests.post(f"{BASE}/api/auth/logout", headers={"Origin": "http://evil.example"}, timeout=30)
+    record("1a a request that names another site as its origin is refused", other.status_code == 403, str(other.status_code))
     caps = requests.get(f"{BASE}/api/capabilities", timeout=10).json()
     record("1b GET /api/capabilities (OCR, reuse ledger and QR keys available)",
            caps.get("ocr") is True and caps.get("reuse_ledger") is True and caps.get("qr_signature_keys", 0) >= 1, str(caps))
@@ -96,6 +117,7 @@ def main() -> int:
         "scanned_genuine.pdf": ("VERIFIED", MSG["all_match"]),  # image-only PDF, read by OCR
         # the text layer says one thing, the page shows another: judged by what is visible
         "painted_over_amount.pdf": ("MISMATCH", MSG["visual_mismatch"].format(field=TAMPER_FIELD)),
+        "hostile_name.pdf": ("MISMATCH", MSG["field_mismatch"].format(field="holder_name")),  # HTML in a field: handled as data
         "hidden_text_forgery.pdf": ("MISMATCH", MSG["visual_mismatch"].format(field=TAMPER_FIELD)),
     }
     for name, (verdict, reason) in expected.items():
@@ -169,7 +191,7 @@ def main() -> int:
            and body.get("coverage") == f"{N_FIELDS - 1} of {N_FIELDS} printed fields confirmed with issuer", str(row))
 
     # 4. empty case id
-    r = requests.post(f"{BASE}/verify", data={"officer_id": OFFICER, "case_id": "", "purpose": "x"},
+    r = SESSION.post(f"{BASE}/verify", data={"case_id": "", "purpose": "x"},
                       files={"file": ("a.pdf", (TESTS / "genuine.pdf").read_bytes(), "application/pdf")}, timeout=30)
     record("4  empty case_id -> 400", r.status_code == 400, str(r.status_code))
 
@@ -197,6 +219,15 @@ def main() -> int:
     post(SCANS / "genuine_photographed.jpg")  # image processing must not write temp files either
     after_files = snapshot(watch)
     record("7  no files written during requests", after_files <= before_files, str(sorted(after_files - before_files)[:5]))
+
+    # 6b. the audit log names the signed-in account, and history is that account's own
+    mine = [json.loads(l) for l in audit_lines() if f'"officer_id":"{OFFICER}"' in l]
+    record("6b audit lines carry the authenticated officer ID, marked as such",
+           len(mine) >= 5 and all(m["officer_id_source"] == "authenticated_account" for m in mine), f"{len(mine)} lines")
+    hist = SESSION.get(f"{BASE}/api/history?limit=100", timeout=30).json()
+    record("6b /api/history returns this officer's checks (hash and verdict, no content)",
+           len(hist) >= 5 and all(set(h) == {"verdict", "route", "input_type", "doc_hash", "officer_id", "timestamp"} for h in hist)
+           and all(h["officer_id"] == OFFICER for h in hist), f"{len(hist)} entries")
 
     # 7b. the same certificate in a *different* case is flagged; the same case again is not
     body = post(TESTS / "genuine.pdf", case_id="CASE-REUSE-OTHER").json()

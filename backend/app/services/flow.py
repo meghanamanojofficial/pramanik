@@ -13,6 +13,7 @@ from typing import Optional
 
 from .. import config
 from ..checks import consistency, links, reuse, signed_qr, visual
+from .. import issuer_client
 from ..issuers import mock_issuer
 from ..scan import pipeline as scan_pipeline
 from . import compare, doctypes, extract, issuer_cache, ledger, qr_payload, qr_service, risk, verdict as verdict_rules
@@ -51,7 +52,8 @@ def _read_pdf(raw: bytes) -> tuple[Reading, str]:
                    signals=signals, page=page), "pdf"
 
 
-def run(raw: bytes, kind: str, officer: str, case_id: str, fresh: bool = False) -> dict:
+def run(raw: bytes, kind: str, officer: str, case_id: str, fresh: bool = False,
+        officer_source: str = OFFICER_ID_SOURCE) -> dict:
     """The whole blocking pipeline; the route runs it in a worker thread.
     `fresh` skips the issuer-answer cache for this check. Raises extract.UnreadablePDF for unopenable PDFs."""
     doc_hash = hashlib.sha256(raw).hexdigest()
@@ -59,10 +61,11 @@ def run(raw: bytes, kind: str, officer: str, case_id: str, fresh: bool = False) 
         reading, input_type = _read_pdf(raw)
     else:
         reading, input_type = scan_pipeline.read_image(raw=raw), "scan"
-    return _conclude(reading, input_type, doc_hash, officer, case_id, fresh)
+    return _conclude(reading, input_type, doc_hash, officer, case_id, fresh, officer_source)
 
 
-def _conclude(rd: Reading, input_type: str, doc_hash: str, officer: str, case_id: str, fresh: bool = False) -> dict:
+def _conclude(rd: Reading, input_type: str, doc_hash: str, officer: str, case_id: str, fresh: bool = False,
+              officer_source: str = OFFICER_ID_SOURCE) -> dict:
     scanned = input_type != "pdf"
     qr = qr_payload.interpret(rd.qr_raw)
     signals = list(rd.signals)
@@ -100,7 +103,7 @@ def _conclude(rd: Reading, input_type: str, doc_hash: str, officer: str, case_id
     issuer_source = (decision.get("issuer_result") or {}).get("source")
     if issuer_source is None and decision.get("issuer_result"):
         issuer_source = "live"
-    write_audit(doc_hash, verdict, decision["route"], officer, timestamp, input_type, issuer_source or "none")
+    write_audit(doc_hash, verdict, decision["route"], officer, timestamp, input_type, issuer_source or "none", officer_source)
 
     printed_key = rd.fields.get(doctypes.key_field(rd.doc_type)) if rd.doc_type else None
     checks = {"qr_consistency": verdict_rules.qr_consistency(printed_key, qr.number)}
@@ -118,6 +121,9 @@ def _conclude(rd: Reading, input_type: str, doc_hash: str, officer: str, case_id
         "route": decision["route"],
         "input_type": input_type,
         "document_type": rd.doc_type["id"] if rd.doc_type else None,
+        "document_title": rd.doc_type["title"] if rd.doc_type else None,
+        "issuer": ({"id": rd.doc_type["issuer_id"], "name": issuer_client.issuer_name(rd.doc_type["issuer_id"])}
+                   if rd.doc_type else None),
         "coverage": compare.coverage(rows),
         "reasons": decision["reasons"],
         "fields": rows,
@@ -125,6 +131,6 @@ def _conclude(rd: Reading, input_type: str, doc_hash: str, officer: str, case_id
         "risk": risk.assess(verdict, signals, input_type, rd.confidences, qr.digital_signature),
         "signals": [s.to_dict() for s in signals],
         "rescan_guidance": rd.rescan_guidance,
-        "audit": {"doc_hash": doc_hash, "officer_id": officer, "officer_id_source": OFFICER_ID_SOURCE,
+        "audit": {"doc_hash": doc_hash, "officer_id": officer, "officer_id_source": officer_source,
                   "timestamp": timestamp},
     }

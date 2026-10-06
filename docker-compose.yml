@@ -1,0 +1,18 @@
+# docker compose up -d --build
+# Put an HTTPS reverse proxy in front (see deploy/README.md); this port is bound to the local machine only.
+services:
+  pramanik:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Required: who may create an account. (Or set PRAMANIK_SIGNUP=closed and add people with tools/create_user.py.)
+      PRAMANIK_SIGNUP_CODE: ${PRAMANIK_SIGNUP_CODE:?Set PRAMANIK_SIGNUP_CODE in a .env file next to docker-compose.yml}
+      PRAMANIK_SESSION_HOURS: ${PRAMANIK_SESSION_HOURS:-8}
+      PRAMANIK_COOKIE_SECURE: ${PRAMANIK_COOKIE_SECURE:-auto}
+    volumes:
+      - pramanik-state:/state
+    ports:
+      - "127.0.0.1:8001:8001"
+
+volumes:
+  pramanik-state:

@@ -2,7 +2,7 @@
   "app_title": "Document verification",
   "subtitle": "Check a document against the issuer's record. Upload a PDF, or a photo or scan of a printed copy. Supported: {document_types}.",
   "default_officer_id": "",
-  "officer_id_label": "Officer ID (self-reported, not verified)",
+  "officer_id_label": "Officer ID",
   "max_upload_mb": 10,
   "purposes": [
     "Benefit application",
@@ -87,7 +87,21 @@
     "visual_mismatch": "{field} in the PDF's text differs from what is shown on the page.",
     "visual_unconfirmed": "Some values could not be confirmed against the visible page.",
     "visual_confirmed": "The PDF's text matches what is visible on the page.",
-    "pdf_conflicting_text": "The PDF contains conflicting values for {field}; it may have been edited."
+    "pdf_conflicting_text": "The PDF contains conflicting values for {field}; it may have been edited.",
+    "auth_email_invalid": "Enter a valid e-mail address.",
+    "auth_password_length": "Use a password of {min} to {max} characters.",
+    "auth_email_taken": "An account with this e-mail already exists. Log in instead.",
+    "auth_bad_login": "E-mail or password is incorrect.",
+    "auth_too_many": "Too many attempts. Wait a few minutes and try again.",
+    "auth_signup_closed": "Sign-up is closed. Ask an administrator for an account.",
+    "auth_signup_code": "That sign-up code is not correct.",
+    "auth_login_required": "Please sign in.",
+    "auth_profile_required": "Complete your profile first.",
+    "auth_name_required": "Enter your full name.",
+    "auth_officer_id_invalid": "An officer ID uses letters, digits and . _ - / (2 to 63 characters).",
+    "auth_officer_id_taken": "That officer ID already belongs to another account.",
+    "auth_field_too_long": "One of the fields is too long.",
+    "auth_forbidden_origin": "Request blocked: it did not come from this site."
   },
   "samples": [
     {

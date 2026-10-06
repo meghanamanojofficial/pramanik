@@ -654,13 +654,19 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     if (cfg.app_title) { $("appTitle").textContent = cfg.app_title; document.title = cfg.app_title; }
     if (cfg.subtitle) $("subtitle").textContent = cfg.subtitle;
     if (cfg.officer_id_label) $("officerLabel").textContent = cfg.officer_id_label;
-    if (!$("officer").value) $("officer").value = cfg.default_officer_id || "";
+    if (!$("officer").value && !$("officer").readOnly) $("officer").value = cfg.default_officer_id || "";
     var sel = $("purpose");
     sel.textContent = "";
     (cfg.purposes || []).forEach(function (p) { sel.appendChild(el("option", null, p)); });
     if (!file) $("dropName").textContent = dropHint();
     drawSamples();
   }
+  /* the server uses the signed-in account's officer ID; show it, read-only */
+  fetch("/api/auth/me").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    if (!d) return;
+    $("officer").value = d.user.officer_id; $("officer").readOnly = true;
+    $("officerLabel").textContent = "Signed-in officer ID";
+  }).catch(function () {});
   fetch("/api/ui-config").then(function (r) { return r.ok ? r.json() : null; })
     .then(function (cfg) { if (cfg) applyConfig(cfg); })
     .catch(function () { /* the page still works with its defaults */ });

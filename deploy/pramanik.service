@@ -1,0 +1,23 @@
+# /etc/systemd/system/pramanik.service   (see deploy/README.md)
+[Unit]
+Description=Pramanik document verification
+After=network.target
+
+[Service]
+Type=simple
+User=pramanik
+Group=pramanik
+WorkingDirectory=/opt/pramanik
+Environment=PRAMANIK_SKIP_DEMO_DOCS=1
+Environment=PRAMANIK_SIGNUP=closed
+ExecStart=/opt/pramanik/venv/bin/python run_all.py --host 127.0.0.1
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/pramanik/backend /opt/pramanik/issuer_service
+
+[Install]
+WantedBy=multi-user.target

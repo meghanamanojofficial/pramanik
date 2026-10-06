@@ -66,6 +66,11 @@ def load_config() -> list:
     return json.loads(path.read_text(encoding="utf-8"))["issuers"]
 
 
+def issuer_name(issuer_id: str) -> str:
+    """Display name for an issuer id (config/issuers.json), falling back to the id."""
+    return next((i.get("name", issuer_id) for i in load_config() if i["issuer_id"] == issuer_id), issuer_id)
+
+
 def _route(document_type: str, issuers: list) -> Optional[dict]:
     return next((i for i in issuers if document_type in i["document_types"]), None)
 

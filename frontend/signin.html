@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PRAMANIK - Create your account</title>
+
+
+
+
+
+
+
+<style data-purpose="custom-layout">
+    body {
+      background-color: #08090e;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    /* Ambient atmospheric background gradient */
+    .ambient-bg {
+      background: 
+        radial-gradient(circle at 18% 30%, rgba(28, 32, 45, 0.45) 0%, transparent 55%),
+        radial-gradient(circle at 82% 70%, rgba(20, 24, 48, 0.4) 0%, transparent 60%),
+        #090a0f;
+    }
+
+    /* Card subtle edge highlight and shadow */
+    .glass-card {
+      background: linear-gradient(180deg, #1c1f26 0%, #171920 100%);
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.75), 
+                  inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Input borders */
+    .input-default {
+      background-color: #20232a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .input-default:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .input-error {
+      background-color: #20232a;
+      border: 1px solid #ea4e58;
+    }
+
+    .input-error:focus {
+      outline: none;
+      border-color: #f87171;
+    }
+  </style>
+<link href="css/fonts.css" rel="stylesheet"/><link href="css/signin.css" rel="stylesheet"/></head>
+<body class="ambient-bg flex items-center justify-center p-4 min-h-screen text-slate-100 antialiased selection:bg-slate-700 selection:text-white">
+<!-- BEGIN: SignUpModalContainer -->
+<main class="w-full max-w-[460px] glass-card rounded-[28px] px-8 py-9 md:px-10 md:py-10 transition-all duration-300" data-purpose="signup-card">
+<!-- Brand Logo / Wordmark Header -->
+<header class="mb-7" data-purpose="brand-header">
+<h2 class="text-[15px] font-extrabold tracking-[0.24em] text-white uppercase select-none">
+        PRAMANIK
+      </h2>
+</header>
+<!-- Header Titles -->
+<section class="mb-8" data-purpose="intro-text">
+<h1 class="text-[26px] md:text-[28px] font-bold text-white tracking-tight leading-tight mb-2" id="heading">Create your account</h1>
+<p class="text-[14px] text-slate-400 font-normal leading-relaxed" id="subheading">
+        Verify the document, not the person.
+      </p>
+</section>
+<!-- BEGIN: SignUpForm -->
+<form class="space-y-5" data-purpose="registration-form" id="signup-form">
+<!-- Email Input Field -->
+<div class="space-y-2">
+<label class="block text-[13.5px] font-normal text-slate-300" for="email">
+          Email
+        </label>
+<input autocomplete="email" class="w-full input-default h-[50px] px-4 rounded-xl text-[14.5px] text-slate-200 placeholder-slate-500 transition-colors bg-[#20232a]" id="email" name="email" placeholder="name@department.gov.in" required="" type="email"/>
+</div>
+<!-- Password Input Field -->
+<div class="space-y-2">
+<label class="block text-[13.5px] font-normal text-slate-300" for="password">
+          Password
+        </label>
+<input aria-describedby="password-error" autocomplete="new-password" class="w-full input-default h-[50px] px-4 rounded-xl text-[16px] text-slate-200 transition-colors focus:ring-0 bg-[#20232a]" id="password" maxlength="128" name="password" placeholder="••••••••" type="password"/>
+<!-- Error Message Feedback -->
+<p class="hidden text-[12.5px] text-brandRed font-normal pt-0.5" id="password-error">Password must be at least 8 characters.</p>
+</div><div class="space-y-2 hidden" id="codeGroup">
+<label class="block text-[13.5px] font-normal text-slate-300" for="signupCode">Sign-up code</label>
+<input autocomplete="off" class="w-full input-default h-[50px] px-4 rounded-xl text-[14.5px] text-slate-200 placeholder-slate-500 transition-colors bg-[#20232a]" id="signupCode" name="signupCode" placeholder="Given to you by your administrator" type="text"/>
+</div>
+<!-- Submit Button (Screen 2 Navigation Action) -->
+<p class="hidden text-[13px] text-brandRed font-normal" id="formError" role="alert"></p><div class="pt-1">
+<button class="w-full h-[50px] bg-[#b4bac4] hover:bg-[#c6ccd6] active:bg-[#9fa5af] text-[#12141a] font-semibold text-[15px] rounded-xl flex items-center justify-center transition-colors shadow-sm cursor-pointer" data-purpose="submit-button" id="submitBtn" type="submit">
+          Sign up
+        </button>
+</div>
+<!-- Divider -->
+
+<!-- Secondary Social Action: Google Login -->
+
+<!-- Footer Account Navigation -->
+<div class="pt-2 text-center text-[13.5px] text-slate-400" data-purpose="login-redirect">
+<span class="" id="switchPrompt">Already have an account? </span>
+<a class="text-slate-300 hover:text-white underline underline-offset-4 font-normal transition-colors cursor-pointer" href="signin.html" id="loginLink">Log in</a>
+</div>
+</form>
+<!-- END: SignUpForm -->
+</main>
+<!-- END: SignUpModalContainer -->
+
+
+<script src="js/api.js"></script><script src="js/ui.js"></script><script src="js/signin.js"></script></body></html>

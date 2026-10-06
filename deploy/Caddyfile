@@ -1,0 +1,11 @@
+# The shortest route to HTTPS: Caddy gets and renews the certificate by itself.
+pramanik.example.gov.in {
+    request_body {
+        max_size 11MB
+    }
+    reverse_proxy 127.0.0.1:8001 {
+        transport http {
+            response_header_timeout 120s
+        }
+    }
+}

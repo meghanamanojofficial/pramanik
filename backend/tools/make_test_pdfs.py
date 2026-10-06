@@ -10,6 +10,7 @@ issuer's private key (issuer_service/signing_keys/, created by issuer_service/se
 key yet it falls back to plain-number QR codes and says so.
 
     genuine.pdf            signed QR, matches the record          -> VERIFIED
+    hostile_name.pdf       the holder's name is HTML with a script payload (the page must show it as plain text)
     painted_over_amount.pdf   a new amount painted over the old one; the old text is still in the file -> MISMATCH
     hidden_text_forgery.pdf   a picture of an edited page with invisible genuine text -> MISMATCH
     edited_amount.pdf      amount edited; QR is the genuine signature (so it disagrees with the print) -> MISMATCH
@@ -102,6 +103,19 @@ def hidden_text(genuine: Path, painted: Path, out: Path) -> None:
         doc.save(str(out))
 
 
+def hostile_name(genuine: Path, out: Path) -> None:
+    """A document whose name field tries to inject markup into the page that displays it."""
+    with fitz.open(str(genuine)) as doc:
+        page = doc[0]
+        spec = next(f for f in DOC["fields"] if f["name"] == "holder_name")
+        old = next(l for l in page.get_text().splitlines() if l.startswith(spec["label"]))
+        rect = page.search_for(old)[0]
+        page.add_redact_annot(rect + (-2, -2, 200, 2), fill=(1, 1, 1))
+        page.apply_redactions()  # really removes the old text, so the hostile line is the only Name in the file
+        page.insert_text((rect.x0, rect.y1 - 2), f"{spec['label']}: <img src=x onerror=window.__pwned=1><b>x</b>", fontsize=9)
+        doc.save(str(out))
+
+
 def main() -> int:
     try:
         records = json.loads(RECORDS.read_text(encoding="utf-8"))
@@ -136,6 +150,7 @@ def main() -> int:
         forged.unlink(missing_ok=True)
 
     painted_over(OUT / "genuine.pdf", OUT / "painted_over_amount.pdf")
+    hostile_name(OUT / "genuine.pdf", OUT / "hostile_name.pdf")
     hidden_text(OUT / "genuine.pdf", OUT / "painted_over_amount.pdf", OUT / "hidden_text_forgery.pdf")
 
     revoked = next((r for r in records if r.get("status") == "revoked"), None)

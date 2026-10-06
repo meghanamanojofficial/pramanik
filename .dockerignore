@@ -1,0 +1,16 @@
+.git
+**/__pycache__
+**/venv
+**/.venv
+**/node_modules
+demo_docs/pdfs
+demo_docs/scans
+backend/.env
+backend/data
+backend/audit.log
+backend/config/issuer_keys.json
+issuer_service/keys.json
+issuer_service/signing_keys
+issuer_service/audit.jsonl
+*.db
+.env

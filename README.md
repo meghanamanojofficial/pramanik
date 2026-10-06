@@ -4,8 +4,8 @@ Document verification for government officers (Hackathena project). An officer u
 Pramanik reads the printed fields and asks the **issuing department** whether they match its own record.
 The issuer answers yes/no per field. It never hands its record back.
 
-> **Status: Checkpoint 2.** One document type (income certificate), one simulated issuer. Accepts digital PDFs,
-> photos, scans and image-only PDFs. See [What this does not do yet](#what-this-does-not-do-yet).
+> **Status: Checkpoint 3.** Web app with sign-in. One document type (income certificate), one simulated issuer. Accepts
+> digital PDFs, photos, scans and image-only PDFs. See [What this does not do yet](#what-this-does-not-do-yet).
 
 ## How it works
 
@@ -75,6 +75,18 @@ Front-end developers: see [`backend/API.md`](backend/API.md) for the request and
 Extra verdicts: **VERIFIED_WITH_WARNINGS** (matches, with points to review), **MATCHES_RECORD_INTEGRITY_CONCERNS** (matches
 the record, but a check above failed: review before accepting), **RESCAN**, **INCONCLUSIVE**.
 
+## Using it
+
+Open <http://localhost:8001>. The pages are served by the backend itself (no separate front-end server):
+
+1. **Sign up** (or log in), then complete your **profile** (name, a unique officer ID).
+2. On the **dashboard** enter a **case ID**, then upload a PDF, or a photo or scan (or use *Scan Document* on a phone to take one).
+3. The **analysis** page runs the check; the **result** page shows the verdict, why, the values read from the document,
+   the risk triage and what to do next. *Audits & History* lists your own recent checks.
+
+The page files are in `frontend/` (see [`frontend/README.md`](frontend/README.md)); the request/response contract is
+[`backend/API.md`](backend/API.md). Going live? Read [`deploy/README.md`](deploy/README.md).
+
 ## Quick start
 
 Requires Python 3.10+ and, for photos and scans, the **Tesseract** program
@@ -88,7 +100,8 @@ pip install -r backend/requirements.txt
 python run_all.py                                      # first run: creates keys + demo documents, starts both services
 ```
 
-Open <http://localhost:8001>. `python run_all.py --test` starts both services, generates the test PDFs and runs every test.
+Open <http://localhost:8001> and sign up. `python run_all.py --test` starts both services, generates the test documents and runs every test
+(including a browser-style run of the real pages if you ran `npm install` in `frontend/`).
 
 Manual start (two terminals), if you prefer:
 
@@ -114,8 +127,10 @@ stop the backend, then `python backend/tools/reset_ledger.py --yes`.
 
 ```bash
 python -m unittest discover -s issuer_service/tests -v           # issuer + pipeline, no servers needed
-python -m unittest discover -s backend/tests -p "test_*.py" -v   # photo stages, signed QR, links, ledger
+python -m unittest discover -s backend/tests -p "test_*.py" -v   # photo stages, signed QR, ledger, accounts, page rules
 python run_all.py --test                                          # everything, plus HTTP acceptance tests (fresh ledger)
+(cd frontend && npm install)                                      # once, to include the page tests in run_all --test
+(cd frontend && npm test)                                         # the page tests alone (needs the services running)
 ```
 
 ## Where things live
@@ -154,9 +169,17 @@ The issuer's audit log (`issuer_service/audit.jsonl`) records key, issuer and ou
 
 ## Security notes
 
-- **Officer ID is self-reported.** There is no login yet, so the audit log's `officer_id` is typed into the form and
-  every audit line is marked `"officer_id_source": "self_reported"`. The log shows what was checked and when. It is not
-  proof of who checked it. Real accountability needs authentication (for example SSO).
+- **Accounts and sessions.** Passwords are stored as salted scrypt hashes. A session is a random token in an `HttpOnly`,
+  `SameSite=Lax` cookie (`Secure` when served over HTTPS); only its hash is stored, so logging out really ends it, and
+  sessions expire (`PRAMANIK_SESSION_HOURS`, default 8). Failed logins are throttled and a wrong password looks the same
+  as an unknown e-mail. Requests that name another site as their origin are refused.
+- **Who may sign up** is a deployment choice: open (demo; a warning is printed), `PRAMANIK_SIGNUP_CODE`, or
+  `PRAMANIK_SIGNUP=closed` with accounts made by `python backend/tools/create_user.py`. Roles chosen on the profile page
+  are informational: they grant nothing. There is no password reset, e-mail verification or MFA yet.
+- **Officer ID in the audit log** is the one on the signed-in account (unique per account) and every line records
+  `"officer_id_source": "authenticated_account"`. The log shows what was checked, when and by which account.
+- **The pages** send no inline script and load nothing from other sites (a strict Content-Security-Policy backs this up);
+  everything taken from an uploaded document is shown as text, never as HTML.
 - **Transport.** Pramanik refuses to send the API key over plain HTTP to anything except localhost.
   In production the issuer link needs HTTPS (ideally mutual TLS).
 - **Uploads stay in memory** and are limited by `max_upload_mb` in `ui.json`. The audit log stores a SHA-256 of the file,
@@ -181,7 +204,9 @@ The issuer's audit log (`issuer_service/audit.jsonl`) records key, issuer and ou
 - No tamper forensics (for example ELA heatmaps).
 - The risk score is rule-based and hand-weighted, not learned from data; treat the weights as a starting point.
 - No authority-side dashboard: the issuer logs outcomes but has no view for them.
-- No officer login (see above) and no TLS between the services in this demo.
+- No password reset, e-mail verification or MFA; roles are not enforced; no TLS between the two services in this demo
+  (they talk over localhost; put HTTPS in front of the public side, see `deploy/README.md`).
+- Run a single backend process (the reuse ledger's hash chain and the login throttle live in that process).
 - Single document type and a single simulated issuer.
 
 ## Project layout
@@ -192,8 +217,10 @@ backend/            Pramanik backend (FastAPI) + page
   app/scan/         photo/scan front-end: quality, page finding, QR, OCR, field parsing
   app/checks/       signed-QR consistency, links, reuse (apply to PDFs and photos)
   config/           document types, issuers, scan thresholds, page text and messages, test inputs
-  static/index.html the officer page (reads its settings from /api/ui-config)
+  static/index.html the plain fallback page, at /classic (the main pages are in frontend/)
   tests/            unit + HTTP acceptance tests      tools/  demo PDF and scan generators
+frontend/           the web pages (HTML, scripts, built CSS and fonts); served by the backend at /app/
+deploy/             nginx, Caddy and systemd examples + the deployment guide; Dockerfile and docker-compose.yml are at the top
 issuer_service/     the simulated department: API-key auth, registries, field comparison, QR signing, its own data/
 demo_docs/          generated sample certificates, PDFs and photos (made by run_all.py, not committed)
 run_all.py          one-command start / test

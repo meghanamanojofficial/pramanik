@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PRAMANIK - Credentials</title>
+
+
+
+
+
+<!-- BEGIN: Custom Glassmorphism Styles -->
+<style data-purpose="glassmorphic-card">
+    .glass-card {
+      background: rgba(22, 25, 37, 0.72);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+    
+    .custom-input {
+      background-color: rgba(30, 34, 48, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.2s ease-in-out;
+    }
+
+    .custom-input:focus {
+      background-color: rgba(36, 41, 58, 0.95);
+      border-color: rgba(142, 150, 186, 0.5);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(142, 150, 186, 0.2);
+    }
+  </style>
+<!-- END: Custom Glassmorphism Styles -->
+<link href="css/fonts.css" rel="stylesheet"/><link href="css/creds.css" rel="stylesheet"/></head>
+<body class="bg-[#090a0f] text-white min-h-screen flex items-center justify-center p-4 sm:p-8 lg:p-12 overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+<!-- BEGIN: Main Layout Container -->
+<main class="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16 py-8" data-purpose="registration-screen">
+<!-- BEGIN: Left Branding Column -->
+<section class="w-full lg:w-1/2 flex flex-col justify-center items-center lg:items-start pl-0 lg:pl-10" data-purpose="brand-presentation">
+<div class="inline-block relative">
+<h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white uppercase select-none">
+          PRAMANIK
+        </h1>
+<!-- Thick decorative brand underline matching reference image -->
+<div class="h-2 sm:h-2.5 bg-white w-full mt-3 rounded-none shadow-[0_0_15px_rgba(255,255,255,0.2)]"></div>
+</div>
+</section>
+<!-- END: Left Branding Column -->
+<!-- BEGIN: Right Form Card -->
+<section class="w-full lg:w-[500px] xl:w-[520px] flex-shrink-0" data-purpose="credentials-form-container">
+<div class="glass-card rounded-[28px] p-7 sm:p-9 text-slate-100 relative">
+<!-- BEGIN: Step Progress Header -->
+<div class="flex items-center justify-between gap-4 mb-7" data-purpose="step-indicator">
+<!-- Segmented Progress Bar -->
+<div class="flex items-center gap-2 flex-grow">
+<!-- Step 1: Completed -->
+<div class="h-1 rounded-full bg-slate-300 flex-1"></div>
+<!-- Step 2: Current Active -->
+<div class="h-1 rounded-full bg-slate-300 flex-1"></div>
+<!-- Step 3: Upcoming -->
+<div class="h-1 rounded-full bg-[#272b3c] flex-1"></div>
+</div>
+<!-- Step Counter Text -->
+<span class="text-xs font-medium text-slate-400 whitespace-nowrap tracking-wide">
+            Step 2 of 3
+          </span>
+</div>
+<!-- END: Step Progress Header -->
+<!-- Title -->
+<h2 class="text-2xl sm:text-[26px] font-semibold tracking-tight text-white mb-6">
+          Tell us about you
+        </h2>
+<!-- BEGIN: Form Fields -->
+<form class="space-y-4 sm:space-y-5" data-purpose="credentials-form" id="creds-form">
+<!-- Full Name Field -->
+<div class="space-y-1.5" data-purpose="input-group-fullname">
+<label class="block text-xs font-medium text-slate-400 tracking-wide" for="fullName">
+              Full name
+            </label>
+<input autocomplete="name" class="custom-input w-full px-4 py-3 rounded-xl text-sm sm:text-base text-slate-100 placeholder-slate-500" id="fullName" name="fullName" placeholder="Enter your full name" required="" type="text"/>
+</div>
+<!-- Phone Number Field -->
+<div class="space-y-1.5" data-purpose="input-group-phone">
+<label class="block text-xs font-medium text-slate-400 tracking-wide" for="phone">
+              Phone
+            </label>
+<input class="custom-input w-full px-4 py-3 rounded-xl text-sm sm:text-base text-slate-100 placeholder-slate-500" id="phone" name="phone" placeholder="Enter your phone number" type="tel"/>
+</div>
+<!-- Organisation Field -->
+<div class="space-y-1.5" data-purpose="input-group-organisation">
+<label class="block text-xs font-medium text-slate-400 tracking-wide" for="organisation">
+              Organisation
+            </label>
+<input class="custom-input w-full px-4 py-3 rounded-xl text-sm sm:text-base text-slate-100 placeholder-slate-500" id="organisation" name="organisation" placeholder="Enter your organisation" type="text"/>
+</div>
+<!-- Officer ID Field -->
+<div class="space-y-1.5" data-purpose="input-group-officer-id" id="officerIdGroup">
+<label class="block text-xs font-medium text-slate-400 tracking-wide" for="officerId">Officer ID</label>
+<input class="custom-input w-full px-4 py-3 rounded-xl text-sm sm:text-base text-slate-100 placeholder-slate-500 font-mono" id="officerId" name="officerId" placeholder="e.g. OFC-4921" required="" type="text"/>
+</div>
+<!-- BEGIN: Role Selection Pills -->
+<div class="space-y-2 pt-1" data-purpose="role-selector">
+<label class="block text-xs font-medium text-slate-400 tracking-wide">
+              Select your role
+            </label>
+<!-- Pills Container -->
+<div class="flex flex-wrap items-center gap-2 pt-0.5" id="rolesContainer">
+<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-all cursor-pointer" data-role="Citizen" type="button">
+  Citizen
+</button>
+<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#8c94ba] text-[#12141e] border border-transparent shadow-sm transition-all cursor-pointer" data-role="Officer" type="button">
+  Officer
+</button>
+<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-all cursor-pointer" data-role="Employer" type="button">
+  Employer
+</button>
+<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-all cursor-pointer" data-role="Institution" type="button">
+  Institution
+</button>
+</div>
+<input id="selectedRole" name="role" type="hidden" value="Officer"/>
+</div>
+<!-- END: Role Selection Pills -->
+<!-- Submit Button -->
+<p class="hidden text-[13px] text-red-400 font-normal" id="formError" role="alert"></p><div class="pt-4" data-purpose="form-action">
+<button class="w-full py-3.5 px-6 rounded-xl bg-[#8c94ba] hover:bg-[#9ca4cb] active:bg-[#7e85a6] text-[#12141e] font-semibold text-sm sm:text-base transition-colors duration-200 shadow-md flex items-center justify-center cursor-pointer" id="continueBtn" type="submit">
+              Continue
+            </button>
+</div>
+</form>
+<!-- END: Form Fields -->
+</div>
+</section>
+<!-- END: Right Form Card -->
+</main>
+<!-- END: Main Layout Container -->
+
+
+<script src="js/api.js"></script><script src="js/ui.js"></script><script src="js/creds.js"></script></body></html>
