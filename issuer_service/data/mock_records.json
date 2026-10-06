@@ -1,0 +1,16 @@
+[
+  {
+    "certificate_number": "INC-0000-0001",
+    "holder_name": "Sample Holder",
+    "issue_date": "2026-01-01",
+    "income_amount": "100000",
+    "status": "active"
+  },
+  {
+    "certificate_number": "INC-0000-0002",
+    "holder_name": "Revoked Holder",
+    "issue_date": "2025-06-30",
+    "income_amount": "90000",
+    "status": "revoked"
+  }
+]

@@ -3,3 +3,13 @@ backend/.env
 issuer_service/keys.json
 issuer_service/audit.jsonl
 __pycache__/
+
+# Windows download markers
+*:Zone.Identifier
+*Zone.Identifier
+
+# local dev
+venv/
+.venv/
+*.log
+

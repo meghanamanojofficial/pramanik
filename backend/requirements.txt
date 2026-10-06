@@ -1,18 +1,15 @@
+# Used by both services (issuer_service/ shares this file) and by the tests / PDF generator.
 fastapi
 uvicorn[standard]
 python-multipart
-pillow
+pydantic
+pymupdf
 opencv-python
 numpy
-imagehash
-pytesseract
-pymupdf
-exifread
-piexif
-sqlalchemy
-psycopg2-binary
+pillow
 rapidfuzz
-pyzbar
+requests
 reportlab
 qrcode[pil]
-requests
+# Optional QR fallback; needs the zbar system library (apt install libzbar0 / brew install zbar).
+pyzbar

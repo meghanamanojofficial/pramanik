@@ -1,12 +1,17 @@
-"""Issuer service core: API-key auth, registry routing, lookup, audit.
+"""Issuer service core: API-key auth, per-document-type registries, field comparison, audit.
 
-Framework-free on purpose so it can be tested without FastAPI.
-main.py is a thin HTTP adapter around IssuerCore.lookup().
+The issuer receives the fields Pramanik extracted from a document and answers
+found / status / per-field match. It does not hand its record back
+(unless a registry explicitly sets "disclose_values": true).
+
+Framework-free so it can be tested without FastAPI; main.py is a thin HTTP adapter.
 """
 import hashlib
 import hmac
 import json
+import re
 import time
+import unicodedata
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Optional, Tuple
@@ -16,6 +21,10 @@ def hash_key(raw: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _s(value) -> str:
+    return "" if value is None else str(value)
+
+
 def _records_as_list(data) -> list:
     """Accept [ {...} ], {"records": [ {...} ]} or {"INC-1": {...}}."""
     if isinstance(data, list):
@@ -23,12 +32,50 @@ def _records_as_list(data) -> list:
     if isinstance(data, dict):
         if isinstance(data.get("records"), list):
             return data["records"]
-        return [
-            {"certificate_number": k, **v}
-            for k, v in data.items()
-            if isinstance(v, dict)
-        ]
+        return [{"certificate_number": k, **v} for k, v in data.items() if isinstance(v, dict)]
     raise ValueError("Unrecognised registry file format")
+
+
+# ---- field comparison, driven by the schema ---------------------------
+def normalise(spec: dict, value) -> str:
+    out = re.sub(r"\s+", " ", _s(value).strip())
+    for op in spec.get("normalize", []):
+        if op == "digits_only":
+            out = re.sub(r"\D", "", out)
+        else:
+            raise ValueError(f"unknown normalize op: {op}")
+    return out
+
+
+def name_key(value) -> str:
+    """Canonical form of a personal name: case, accents-as-composed, punctuation, spacing and
+    word order are ignored. Anything else (a changed, added or missing letter) is a different name."""
+    text = unicodedata.normalize("NFKC", _s(value)).casefold()
+    text = re.sub(r"[^\w\s]", " ", text)
+    return " ".join(sorted(text.split()))
+
+
+def field_matches(spec: dict, document_value, record_value) -> bool:
+    """Compare one field using the schema's `compare` rule.
+
+    method "exact"  (default) -> equal after normalisation
+    method "name"             -> equal after name_key(); no fuzziness, so "Ravi Kumar" != "Ravi Kumari"
+    method "fuzzy"            -> rapidfuzz token_sort_ratio >= threshold. Loose: a one-letter edit can
+                                 still score above 90, so do not use it for identity fields.
+    """
+    rule = spec.get("compare", {})
+    method = rule.get("method", "exact")
+    if method == "name":
+        return name_key(document_value) == name_key(record_value)
+    a, b = normalise(spec, document_value), normalise(spec, record_value)
+    if rule.get("ignore_case"):
+        a, b = a.lower(), b.lower()
+    if method == "fuzzy":
+        from rapidfuzz import fuzz
+        return fuzz.token_sort_ratio(a, b) >= rule.get("threshold", 97)
+    if method == "exact":
+        return a == b
+    raise ValueError(f"unknown compare method: {method}")
 
 
 class KeyStore:
@@ -75,31 +122,34 @@ class IssuerCore:
         self.keys = KeyStore(keys_path)
         self.audit_path = Path(audit_path) if audit_path else None
         self.limiter = RateLimiter(rate_limit_per_minute)
-        self._cache = {}  # file path -> (mtime, {cert_number: record})
+        self._cache = {}  # (records path, records mtime, schema mtime) -> index
 
-    # ---- registries -------------------------------------------------
-    def _registries(self) -> list:
-        cfg = json.loads(self.registries_path.read_text(encoding="utf-8"))
-        return cfg["registries"]
+    # ---- config -----------------------------------------------------
+    def _config(self) -> dict:
+        return json.loads(self.registries_path.read_text(encoding="utf-8"))
 
-    def _index(self, registry: dict) -> dict:
-        path = (self.registries_path.parent / registry["file"]).resolve()
-        mtime = path.stat().st_mtime
-        cached = self._cache.get(path)
-        if cached and cached[0] == mtime:  # editing the JSON takes effect live
-            return cached[1]
+    def _schema_path(self, cfg) -> Path:
+        return (self.registries_path.parent / cfg["schema_file"]).resolve()
+
+    def _doc_spec(self, cfg, document_type: str) -> dict:
+        types = json.loads(self._schema_path(cfg).read_text(encoding="utf-8"))["document_types"]
+        return next(t for t in types if t["id"] == document_type)
+
+    def _registry(self, cfg, document_type: str) -> Optional[dict]:
+        return next((r for r in cfg["registries"] if r["document_type"] == document_type), None)
+
+    def _index(self, cfg, reg: dict, spec: dict) -> dict:
+        """{normalised key value: record}. Editing either JSON file takes effect live."""
+        path = (self.registries_path.parent / reg["file"]).resolve()
+        stamp = (path, path.stat().st_mtime, self._schema_path(cfg).stat().st_mtime)
+        if stamp in self._cache:
+            return self._cache[stamp]
+        key_name = spec["key_field"]
+        key_spec = next(f for f in spec["fields"] if f["name"] == key_name)
         records = _records_as_list(json.loads(path.read_text(encoding="utf-8")))
-        index = {r["certificate_number"]: r for r in records if "certificate_number" in r}
-        self._cache[path] = (mtime, index)
+        index = {normalise(key_spec, r[key_name]): r for r in records if isinstance(r, dict) and key_name in r}
+        self._cache[stamp] = index
         return index
-
-    def _route(self, cert_number: str) -> Optional[dict]:
-        best = None
-        for reg in self._registries():
-            if cert_number.upper().startswith(reg["prefix"].upper()):
-                if best is None or len(reg["prefix"]) > len(best["prefix"]):
-                    best = reg
-        return best
 
     # ---- audit ------------------------------------------------------
     def _audit(self, key_id, issuer_id, outcome):
@@ -110,25 +160,63 @@ class IssuerCore:
         with self.audit_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(line) + "\n")
 
-    # ---- the one operation ------------------------------------------
-    def lookup(self, api_key: Optional[str], cert_number: str) -> Tuple[int, dict]:
+    # ---- shared front door ------------------------------------------
+    def _gate(self, api_key):
         key = self.keys.authenticate(api_key)
         if key is None:
             self._audit(None, None, "unauthorized")
-            return 401, {"error": "invalid or missing API key"}
+            return None, (401, {"error": "invalid or missing API key"})
         if not self.limiter.allow(key["key_id"]):
             self._audit(key["key_id"], key["issuer_id"], "rate_limited")
-            return 429, {"error": "rate limit exceeded"}
-        reg = self._route(cert_number)
-        if reg is None:
-            self._audit(key["key_id"], key["issuer_id"], "no_registry")
-            return 404, {"error": "not found"}  # same body as a missing record
-        if reg["issuer_id"] != key["issuer_id"]:
-            self._audit(key["key_id"], key["issuer_id"], "forbidden")
-            return 403, {"error": "key is not authorised for this issuer"}
-        record = self._index(reg).get(cert_number)
-        if record is None:
-            self._audit(key["key_id"], reg["issuer_id"], "not_found")
-            return 404, {"error": "not found"}
+            return None, (429, {"error": "rate limit exceeded"})
+        return key, None
+
+    # ---- POST /v1/verify --------------------------------------------
+    def verify(self, api_key: Optional[str], document_type, fields) -> Tuple[int, dict]:
+        key, refused = self._gate(api_key)
+        if refused:
+            return refused
+        if not isinstance(document_type, str) or not isinstance(fields, dict):
+            return 400, {"error": "document_type and fields are required"}
+        try:
+            cfg = self._config()
+            reg = self._registry(cfg, document_type)
+            if reg is None:
+                self._audit(key["key_id"], key["issuer_id"], "no_registry")
+                return 404, {"error": "not found"}
+            if reg["issuer_id"] != key["issuer_id"]:
+                self._audit(key["key_id"], key["issuer_id"], "forbidden")
+                return 403, {"error": "key is not authorised for this issuer"}
+            spec = self._doc_spec(cfg, document_type)
+            index = self._index(cfg, reg, spec)
+            key_spec = next(f for f in spec["fields"] if f["name"] == spec["key_field"])
+            record = index.get(normalise(key_spec, fields.get(spec["key_field"])))
+            if record is None:
+                self._audit(key["key_id"], reg["issuer_id"], "not_found")
+                return 200, {"issuer_id": reg["issuer_id"], "found": False}
+            matches = {f["name"]: field_matches(f, fields.get(f["name"]), record.get(f["name"]))
+                       for f in spec["fields"]}
+            body = {"issuer_id": reg["issuer_id"], "found": True,
+                    "status": _s(record.get("status")), "matches": matches}
+            if reg.get("disclose_values"):
+                body["values"] = {f["name"]: record.get(f["name"]) for f in spec["fields"]}
+        except (OSError, ValueError, KeyError, StopIteration, ImportError):
+            self._audit(key["key_id"], key["issuer_id"], "registry_error")
+            return 503, {"error": "registry unavailable"}
         self._audit(key["key_id"], reg["issuer_id"], "found")
-        return 200, {"issuer_id": reg["issuer_id"], "record": record}
+        return 200, body
+
+    # ---- GET /v1/stats ----------------------------------------------
+    def stats(self, api_key: Optional[str]) -> Tuple[int, dict]:
+        key, refused = self._gate(api_key)
+        if refused:
+            return refused
+        try:
+            cfg = self._config()
+            total = 0
+            for reg in cfg["registries"]:
+                if reg["issuer_id"] == key["issuer_id"]:
+                    total += len(self._index(cfg, reg, self._doc_spec(cfg, reg["document_type"])))
+        except (OSError, ValueError, KeyError, StopIteration):
+            return 503, {"error": "registry unavailable"}
+        return 200, {"records_loaded": total}

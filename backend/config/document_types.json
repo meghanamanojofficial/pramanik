@@ -19,7 +19,7 @@
           "name": "holder_name",
           "label": "Name",
           "value_pattern": ".+",
-          "compare": { "method": "fuzzy", "threshold": 90, "ignore_case": true }
+          "compare": { "method": "name" }
         },
         {
           "name": "issue_date",

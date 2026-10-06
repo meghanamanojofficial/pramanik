@@ -1,0 +1,215 @@
+{
+  "app_title": "Document verification",
+  "subtitle": "Check a document against the issuer's record. Supported: {document_types}.",
+  "default_officer_id": "",
+  "officer_id_label": "Officer ID (self-reported, not verified)",
+  "max_upload_mb": 10,
+  "purposes": [
+    "Benefit application",
+    "Eligibility check",
+    "Records audit"
+  ],
+  "verdict_labels": {
+    "VERIFIED": "Verified",
+    "MISMATCH": "Does not match issuer record",
+    "SUSPICIOUS": "Suspicious",
+    "UNVERIFIABLE": "Unverifiable"
+  },
+  "messages": {
+    "case_id_required": "A case or application ID is required.",
+    "not_pdf": "Upload a text-based PDF.",
+    "file_too_large": "File is larger than {max_mb} MB.",
+    "request_unreadable": "The request could not be read.",
+    "verification_failed": "Verification could not be completed.",
+    "doc_type_unrecognised": "Document type not recognised.",
+    "field_unreadable": "Could not read {field} from the document.",
+    "qr_mismatch": "QR code number differs from the printed certificate number.",
+    "not_found": "Issuer has no record of this certificate number.",
+    "field_mismatch": "{field} on the document does not match the issuer record.",
+    "status_not_valid": "Issuer lists this certificate as {status}.",
+    "all_match": "All printed fields match the issuer record.",
+    "unreachable": "Issuer could not be reached.",
+    "unconnected": "No issuer is connected for this document type.",
+    "not_configured": "No API key is configured for this issuer. Run issuer_service/setup_keys.py.",
+    "key_rejected": "The issuer rejected Pramanik's API key (or the key is not allowed for this issuer).",
+    "rate_limited": "The issuer is limiting requests. Try again shortly.",
+    "registry_unavailable": "The issuer is reachable but its registry could not be read.",
+    "bad_response": "The issuer sent a response Pramanik could not read.",
+    "insecure_transport": "The issuer address uses plain HTTP. Use HTTPS (plain HTTP is only allowed for localhost).",
+    "http_error": "The issuer returned an unexpected error ({detail})."
+  },
+  "samples": [
+    {
+      "label": "Genuine",
+      "result": {
+        "verdict": "VERIFIED",
+        "route": "direct_issuer",
+        "input_type": "pdf",
+        "coverage": "4 of 4 printed fields confirmed with issuer",
+        "reasons": [
+          "All printed fields match the issuer record."
+        ],
+        "fields": [
+          {
+            "field": "certificate_number",
+            "document": "INC-2026-0412",
+            "issuer": "INC-2026-0412",
+            "match": true
+          },
+          {
+            "field": "holder_name",
+            "document": "Ravi Kumar",
+            "issuer": "Ravi Kumar",
+            "match": true
+          },
+          {
+            "field": "issue_date",
+            "document": "2026-03-01",
+            "issuer": "2026-03-01",
+            "match": true
+          },
+          {
+            "field": "income_amount",
+            "document": "180000",
+            "issuer": "180000",
+            "match": true
+          }
+        ],
+        "checks": {
+          "qr_consistency": "pass",
+          "pdf_metadata": "not_applicable",
+          "digital_signature": "not_applicable"
+        }
+      }
+    },
+    {
+      "label": "Edited amount",
+      "result": {
+        "verdict": "MISMATCH",
+        "route": "direct_issuer",
+        "input_type": "pdf",
+        "coverage": "3 of 4 printed fields confirmed with issuer",
+        "reasons": [
+          "income_amount on the document does not match the issuer record."
+        ],
+        "fields": [
+          {
+            "field": "certificate_number",
+            "document": "INC-2026-0412",
+            "issuer": "INC-2026-0412",
+            "match": true
+          },
+          {
+            "field": "holder_name",
+            "document": "Ravi Kumar",
+            "issuer": "Ravi Kumar",
+            "match": true
+          },
+          {
+            "field": "issue_date",
+            "document": "2026-03-01",
+            "issuer": "2026-03-01",
+            "match": true
+          },
+          {
+            "field": "income_amount",
+            "document": "480000",
+            "issuer": "does not match",
+            "match": false
+          }
+        ],
+        "checks": {
+          "qr_consistency": "pass",
+          "pdf_metadata": "not_applicable",
+          "digital_signature": "not_applicable"
+        }
+      }
+    },
+    {
+      "label": "Unknown number",
+      "result": {
+        "verdict": "SUSPICIOUS",
+        "route": "direct_issuer",
+        "input_type": "pdf",
+        "coverage": "0 of 4 printed fields confirmed with issuer",
+        "reasons": [
+          "Issuer has no record of this certificate number."
+        ],
+        "fields": [
+          {
+            "field": "certificate_number",
+            "document": "INC-9999-9999",
+            "issuer": "not found",
+            "match": false
+          },
+          {
+            "field": "holder_name",
+            "document": "Ravi Kumar",
+            "issuer": "not found",
+            "match": false
+          },
+          {
+            "field": "issue_date",
+            "document": "2026-03-01",
+            "issuer": "not found",
+            "match": false
+          },
+          {
+            "field": "income_amount",
+            "document": "180000",
+            "issuer": "not found",
+            "match": false
+          }
+        ],
+        "checks": {
+          "qr_consistency": "pass",
+          "pdf_metadata": "not_applicable",
+          "digital_signature": "not_applicable"
+        }
+      }
+    },
+    {
+      "label": "Revoked",
+      "result": {
+        "verdict": "SUSPICIOUS",
+        "route": "direct_issuer",
+        "input_type": "pdf",
+        "coverage": "4 of 4 printed fields confirmed with issuer",
+        "reasons": [
+          "Issuer lists this certificate as revoked."
+        ],
+        "fields": [
+          {
+            "field": "certificate_number",
+            "document": "INC-2026-0412",
+            "issuer": "INC-2026-0412",
+            "match": true
+          },
+          {
+            "field": "holder_name",
+            "document": "Ravi Kumar",
+            "issuer": "Ravi Kumar",
+            "match": true
+          },
+          {
+            "field": "issue_date",
+            "document": "2026-03-01",
+            "issuer": "2026-03-01",
+            "match": true
+          },
+          {
+            "field": "income_amount",
+            "document": "180000",
+            "issuer": "180000",
+            "match": true
+          }
+        ],
+        "checks": {
+          "qr_consistency": "pass",
+          "pdf_metadata": "not_applicable",
+          "digital_signature": "not_applicable"
+        }
+      }
+    }
+  ]
+}

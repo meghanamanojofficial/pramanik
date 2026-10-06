@@ -91,7 +91,7 @@ button.quiet:hover { border-color: var(--focus); }
 /* verdict colours (text is always shown too) */
 .v-verified { --vc: var(--green); --vbg: var(--green-bg); }
 .v-suspicious { --vc: var(--amber); --vbg: var(--amber-bg); }
-.v-tampered { --vc: var(--red); --vbg: var(--red-bg); }
+.v-mismatch { --vc: var(--red); --vbg: var(--red-bg); }
 .v-unverifiable { --vc: var(--grey); --vbg: var(--grey-bg); }
 .dot.vd { background: var(--vc); }
 
@@ -154,8 +154,8 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
 <body>
 <div class="page">
   <header>
-    <h1>Document verification</h1>
-    <p class="lede">Check an income certificate against the issuer's record.</p>
+    <h1 id="appTitle">Document verification</h1>
+    <p class="lede" id="subtitle">Check a document against the issuer's record.</p>
   </header>
 
   <div class="layout">
@@ -164,8 +164,8 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
         <h2 id="h-submit">Submit a document</h2>
         <form id="form" novalidate>
           <div class="row">
-            <label for="officer">Officer ID</label>
-            <input type="text" id="officer" value="OFF-1042" autocomplete="off">
+            <label for="officer" id="officerLabel">Officer ID</label>
+            <input type="text" id="officer" autocomplete="off">
           </div>
           <div class="row">
             <label for="caseid">Case or application ID</label>
@@ -174,18 +174,14 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
           </div>
           <div class="row">
             <label for="purpose">Purpose</label>
-            <select id="purpose">
-              <option>Benefit application</option>
-              <option>Eligibility check</option>
-              <option>Records audit</option>
-            </select>
+            <select id="purpose"></select>
           </div>
           <div class="row">
             <label id="dropLabel" for="file">PDF certificate</label>
             <input type="file" id="file" class="sr" accept="application/pdf,.pdf" tabindex="-1">
             <button type="button" class="drop" id="drop" aria-labelledby="dropLabel dropText">
               <strong id="dropText">Drop a PDF here or choose a file</strong>
-              <span id="dropName">Text-based PDF, up to 10 MB</span>
+              <span id="dropName">Text-based PDF</span>
             </button>
             <p class="msg" id="fileMsg" role="alert"></p>
             <div class="preview-box" id="previewBox" hidden>
@@ -203,7 +199,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
         <ul class="list" id="recent"></ul>
       </section>
 
-      <section class="panel" aria-labelledby="h-samples">
+      <section class="panel" id="samplesPanel" aria-labelledby="h-samples" hidden>
         <h2 id="h-samples">Sample results</h2>
         <div class="samples" id="samples"></div>
         <p class="hint">Sample data, no file is checked.</p>
@@ -232,12 +228,14 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
   }
 
   var STEPS = ["Upload", "Read document", "Read QR", "Ask issuer", "Verdict"];
-  var NOTES = { "not found": 1, "not queried": 1, "unreachable": 1 };
+  var NOTES = { "not found": 1, "not queried": 1, "unreachable": 1, "unavailable": 1 };
+  /* Defaults, replaced by GET /api/ui-config (backend/config/ui.json) as soon as it loads. */
+  var UI = { max_upload_mb: null, verdict_labels: {}, samples: [] };
   var file = null, objectUrl = null, running = false, timer = null, recent = [];
 
   /* ---------- helpers ---------- */
   function verdictClass(v) {
-    return "v-" + (["VERIFIED", "SUSPICIOUS", "TAMPERED", "UNVERIFIABLE"].indexOf(v) > -1 ? String(v).toLowerCase() : "unverifiable");
+    return "v-" + (["VERIFIED", "SUSPICIOUS", "MISMATCH", "UNVERIFIABLE"].indexOf(v) > -1 ? String(v).toLowerCase() : "unverifiable");
   }
   function humanise(s) {
     s = String(s || "").replace(/_/g, " ");
@@ -336,7 +334,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     if (isSample) wrap.appendChild(el("p", "sample-tag", "Sample data, no file was checked"));
 
     var head = el("div", "verdict");
-    head.appendChild(el("div", "stamp", res.verdict || "UNVERIFIABLE"));
+    head.appendChild(el("div", "stamp", UI.verdict_labels[res.verdict] || res.verdict || "UNVERIFIABLE"));
     var meta = el("dl", "meta");
     [["Route", res.route], ["Coverage", res.coverage], ["Input type", res.input_type]].forEach(function (p) {
       meta.appendChild(el("dt", null, p[0]));
@@ -412,7 +410,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
 
     var line = el("div", "audit");
     var code = el("code", null, audit
-      ? "Audit log: " + (audit.doc_hash || "\u2014") + " | " + (audit.officer_id || "\u2014") + " | " + (audit.timestamp || "\u2014")
+      ? "Audit log: " + (audit.doc_hash || "\u2014") + " | " + (audit.officer_id || "\u2014") + (audit.officer_id_source === "self_reported" ? " (self-reported)" : "") + " | " + (audit.timestamp || "\u2014")
       : "Audit log: not available");
     line.appendChild(code);
     var copy = el("button", "quiet", "Copy report");
@@ -440,7 +438,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
       b.type = "button";
       b.appendChild(el("span", "dot vd"));
       var text = el("span", "name");
-      text.appendChild(el("strong", null, item.result.verdict || "UNVERIFIABLE"));
+      text.appendChild(el("strong", null, UI.verdict_labels[item.result.verdict] || item.result.verdict || "UNVERIFIABLE"));
       text.appendChild(document.createTextNode("  " + item.fileName));
       b.appendChild(text);
       b.appendChild(el("span", "time", timeLabel(item.time)));
@@ -457,52 +455,29 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     drawRecent();
   }
 
-  /* ---------- sample results (canned, never sent anywhere) ---------- */
-  function sampleRows(overrides) {
-    var base = [
-      { field: "certificate_number", document: "INC-2026-0412", issuer: "INC-2026-0412", match: true },
-      { field: "holder_name", document: "Ravi Kumar", issuer: "Ravi Kumar", match: true },
-      { field: "issue_date", document: "2026-03-01", issuer: "2026-03-01", match: true },
-      { field: "income_amount", document: "180000", issuer: "180000", match: true }
-    ];
-    return base.map(function (r) { return Object.assign({}, r, overrides && overrides[r.field] || {}); });
-  }
+  /* ---------- sample results (canned, never sent anywhere; the data is in backend/config/ui.json) ---------- */
   function sampleAudit() {
-    return { doc_hash: "sample-data-no-file-checked", officer_id: "OFF-1042", timestamp: new Date().toISOString().replace(/\.\d+Z$/, "Z") };
+    return { doc_hash: "sample-data-no-file-checked", officer_id: "sample", timestamp: new Date().toISOString().replace(/\.\d+Z$/, "Z") };
   }
-  var SAMPLES = [
-    { label: "Genuine", build: function () { return {
-      verdict: "VERIFIED", route: "direct_issuer", input_type: "pdf", coverage: "4 of 4 printed fields confirmed with issuer",
-      reasons: ["All printed fields match the issuer record."], fields: sampleRows(),
-      checks: { qr_consistency: "pass", pdf_metadata: "not_applicable", digital_signature: "not_applicable" }, audit: sampleAudit() }; } },
-    { label: "Edited amount", build: function () { return {
-      verdict: "TAMPERED", route: "direct_issuer", input_type: "pdf", coverage: "3 of 4 printed fields confirmed with issuer",
-      reasons: ["income_amount on the document does not match the issuer record."],
-      fields: sampleRows({ income_amount: { document: "480000", match: false } }),
-      checks: { qr_consistency: "pass", pdf_metadata: "not_applicable", digital_signature: "not_applicable" }, audit: sampleAudit() }; } },
-    { label: "Unknown number", build: function () { return {
-      verdict: "SUSPICIOUS", route: "direct_issuer", input_type: "pdf", coverage: "0 of 4 printed fields confirmed with issuer",
-      reasons: ["Issuer has no record of this certificate number."],
-      fields: sampleRows().map(function (r) {
-        return Object.assign({}, r, { issuer: "not found", match: false }, r.field === "certificate_number" ? { document: "INC-9999-9999" } : {});
-      }),
-      checks: { qr_consistency: "pass", pdf_metadata: "not_applicable", digital_signature: "not_applicable" }, audit: sampleAudit() }; } },
-    { label: "Revoked", build: function () { return {
-      verdict: "SUSPICIOUS", route: "direct_issuer", input_type: "pdf", coverage: "4 of 4 printed fields confirmed with issuer",
-      reasons: ["Issuer lists this certificate as revoked."], fields: sampleRows(),
-      checks: { qr_consistency: "pass", pdf_metadata: "not_applicable", digital_signature: "not_applicable" }, audit: sampleAudit() }; } }
-  ];
-  SAMPLES.forEach(function (s) {
-    var b = el("button", "quiet", s.label);
-    b.type = "button";
-    b.addEventListener("click", function () {
-      drawTrail({ done: 5, active: -1 });
-      render(s.build(), true);
+  function drawSamples() {
+    var box = $("samples");
+    box.textContent = "";
+    UI.samples.forEach(function (s) {
+      var b = el("button", "quiet", s.label);
+      b.type = "button";
+      b.addEventListener("click", function () {
+        drawTrail({ done: 5, active: -1 });
+        render(Object.assign({}, s.result, { audit: sampleAudit() }), true);
+      });
+      box.appendChild(b);
     });
-    $("samples").appendChild(b);
-  });
+    $("samplesPanel").hidden = UI.samples.length === 0;
+  }
 
   /* ---------- file handling ---------- */
+  function dropHint() {
+    return UI.max_upload_mb ? "Text-based PDF, up to " + UI.max_upload_mb + " MB" : "Text-based PDF";
+  }
   function updateButton() {
     $("verify").disabled = running || !file || !$("caseid").value.trim();
   }
@@ -511,7 +486,7 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
     file = null;
     $("preview").removeAttribute("src");
     $("previewBox").hidden = true;
-    $("dropName").textContent = "Text-based PDF, up to 10 MB";
+    $("dropName").textContent = dropHint();
   }
   function chooseFile(f) {
     $("fileMsg").textContent = "";
@@ -590,6 +565,23 @@ mark { background: var(--mark); color: inherit; font-weight: 700; border-radius:
       })
       .then(function () { running = false; updateButton(); });
   }
+
+  /* ---------- settings from the server ---------- */
+  function applyConfig(cfg) {
+    UI = Object.assign(UI, cfg);
+    if (cfg.app_title) { $("appTitle").textContent = cfg.app_title; document.title = cfg.app_title; }
+    if (cfg.subtitle) $("subtitle").textContent = cfg.subtitle;
+    if (cfg.officer_id_label) $("officerLabel").textContent = cfg.officer_id_label;
+    if (!$("officer").value) $("officer").value = cfg.default_officer_id || "";
+    var sel = $("purpose");
+    sel.textContent = "";
+    (cfg.purposes || []).forEach(function (p) { sel.appendChild(el("option", null, p)); });
+    if (!file) $("dropName").textContent = dropHint();
+    drawSamples();
+  }
+  fetch("/api/ui-config").then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (cfg) { if (cfg) applyConfig(cfg); })
+    .catch(function () { /* the page still works with its defaults */ });
 
   /* ---------- initial state ---------- */
   drawTrail({ done: 0, active: -1 });

@@ -1,11 +1,14 @@
 """Verdict rules, evaluated top to bottom; the first match wins."""
 from typing import Callable, Optional
 
+from .. import config
 from ..issuers.base import IssuerResult
-from .compare import NOT_FOUND, NOT_QUERIED, UNREACHABLE
+from .compare import NOT_FOUND, NOT_QUERIED, UNAVAILABLE, UNREACHABLE
 from .doctypes import field_names, key_field
 
-VERIFIED, SUSPICIOUS, TAMPERED, UNVERIFIABLE = "VERIFIED", "SUSPICIOUS", "TAMPERED", "UNVERIFIABLE"
+# MISMATCH means "the printed fields do not match the issuer record". It does not say why:
+# a clerical error or registry lag looks the same as an edit, so the wording stays neutral.
+VERIFIED, SUSPICIOUS, MISMATCH, UNVERIFIABLE = "VERIFIED", "SUSPICIOUS", "MISMATCH", "UNVERIFIABLE"
 
 
 def qr_consistency(printed_number: Optional[str], qr_number: Optional[str]) -> str:
@@ -26,7 +29,7 @@ def decide(doc_type: Optional[dict], doc_fields: dict, qr_number: Optional[str],
 
     # 0. We could not tell what kind of document this is
     if doc_type is None:
-        return out(UNVERIFIABLE, ["Document type not recognised."])
+        return out(UNVERIFIABLE, [config.message("doc_type_unrecognised")])
 
     names = field_names(doc_type)
     printed = doc_fields.get(key_field(doc_type))
@@ -34,24 +37,28 @@ def decide(doc_type: Optional[dict], doc_fields: dict, qr_number: Optional[str],
     # 1. Anything unreadable
     missing = [f for f in names if not doc_fields.get(f)]
     if missing:
-        return out(UNVERIFIABLE, [f"Could not read {f} from the document." for f in missing])
+        return out(UNVERIFIABLE, [config.message("field_unreadable", field=f) for f in missing])
 
     # 2. QR disagrees with the printed number; the issuer is not asked
     if qr_number and qr_number != printed:
-        return out(SUSPICIOUS, ["QR code number differs from the printed certificate number."])
+        return out(SUSPICIOUS, [config.message("qr_mismatch")])
 
     # 3-7. Send the extracted fields to the issuing authority
     result = query_issuer(doc_type["id"], {f: doc_fields[f] for f in names})
 
     if not result["reachable"]:
-        return out(UNVERIFIABLE, ["Issuer could not be reached."], "direct_issuer", result, UNREACHABLE)
+        code = result.get("error") or "unreachable"
+        note = UNREACHABLE if code == "unreachable" else UNAVAILABLE
+        return out(UNVERIFIABLE, [config.issuer_error_message(code, result.get("detail", ""))],
+                   "direct_issuer", result, note)
     if not result["found"]:
-        return out(SUSPICIOUS, ["Issuer has no record of this certificate number."], "direct_issuer", result, NOT_FOUND)
+        return out(SUSPICIOUS, [config.message("not_found")], "direct_issuer", result, NOT_FOUND)
 
     mismatched = [f for f in names if not result["matches"].get(f, False)]
     if mismatched:
-        return out(TAMPERED, [f"{f} on the document does not match the issuer record." for f in mismatched],
+        return out(MISMATCH, [config.message("field_mismatch", field=f) for f in mismatched],
                    "direct_issuer", result)
     if result["status"] != doc_type.get("valid_status", "active"):
-        return out(SUSPICIOUS, [f"Issuer lists this certificate as {result['status']}."], "direct_issuer", result)
-    return out(VERIFIED, ["All printed fields match the issuer record."], "direct_issuer", result)
+        return out(SUSPICIOUS, [config.message("status_not_valid", status=result["status"])],
+                   "direct_issuer", result)
+    return out(VERIFIED, [config.message("all_match")], "direct_issuer", result)

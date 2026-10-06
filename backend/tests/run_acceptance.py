@@ -14,6 +14,8 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT / "config" / "test_cases.json").read_text(encoding="utf-8"))
+UI = json.loads((ROOT / "config" / "ui.json").read_text(encoding="utf-8"))
+MSG = UI["messages"]
 SCHEMA = json.loads((ROOT / "config" / "document_types.json").read_text(encoding="utf-8"))["document_types"]
 DOC = next(t for t in SCHEMA if t["id"] == CFG["document_type"])
 
@@ -69,15 +71,15 @@ def main() -> int:
 
     # 2. each PDF gives the expected verdict and key reason
     expected = {
-        "genuine.pdf": ("VERIFIED", "All printed fields match the issuer record."),
-        "edited_amount.pdf": ("TAMPERED", f"{TAMPER_FIELD} on the document does not match the issuer record."),
-        "unknown_number.pdf": ("SUSPICIOUS", "Issuer has no record of this certificate number."),
-        "revoked.pdf": ("SUSPICIOUS", "Issuer lists this certificate as revoked."),
+        "genuine.pdf": ("VERIFIED", MSG["all_match"]),
+        "edited_amount.pdf": ("MISMATCH", MSG["field_mismatch"].format(field=TAMPER_FIELD)),
+        "unknown_number.pdf": ("SUSPICIOUS", MSG["not_found"]),
+        "revoked.pdf": ("SUSPICIOUS", MSG["status_not_valid"].format(status="revoked")),
     }
     for name, (verdict, reason) in expected.items():
         pdf = TESTS / name
         if not pdf.exists():
-            print(f"SKIP  2  {name} (not generated; probably no record of that kind)")
+            record(f"2  {name} exists", False, "missing: run `python tools/make_test_pdfs.py` from backend/")
             continue
         body = post(pdf).json()
         record(f"2  {name} -> {verdict}", body.get("verdict") == verdict and reason in body.get("reasons", []),
@@ -99,7 +101,7 @@ def main() -> int:
 
     # 5. non-PDF
     r = post(content=b"hello, not a pdf", filename="note.txt")
-    record("5  non-PDF -> 400", r.status_code == 400 and r.json().get("detail") == "Upload a text-based PDF.", str(r.status_code))
+    record("5  non-PDF -> 400", r.status_code == 400 and r.json().get("detail") == MSG["not_pdf"], str(r.status_code))
 
     # 6. audit log: N requests -> N lines, no leaked content
     before = len(audit_lines())
@@ -125,8 +127,8 @@ def main() -> int:
     RECORDS.rename(backup)
     try:
         body = post(TESTS / "genuine.pdf").json()
-        record("8  records file removed -> UNVERIFIABLE",
-               body.get("verdict") == "UNVERIFIABLE" and "Issuer could not be reached." in body.get("reasons", []),
+        record("8  records file removed -> UNVERIFIABLE with the registry reason (not 'could not be reached')",
+               body.get("verdict") == "UNVERIFIABLE" and MSG["registry_unavailable"] in body.get("reasons", []),
                str(body.get("reasons")))
     finally:
         backup.rename(RECORDS)

@@ -7,6 +7,8 @@ class IssuerResult(TypedDict):
     status: str                 # "active" | "revoked" | "expired"
     matches: dict[str, bool]    # per field
     values: dict[str, str]      # issuer's value per field, demo only
+    error: str                  # why the issuer could not answer (reachable is False); "" otherwise
+    detail: str                 # extra detail for that error, e.g. the HTTP status
 
 
 def verify(certificate_number: str, fields: dict[str, str]) -> IssuerResult:

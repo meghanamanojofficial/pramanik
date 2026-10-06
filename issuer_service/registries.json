@@ -1,10 +1,12 @@
 {
+  "schema_file": "../backend/config/document_types.json",
   "registries": [
     {
       "issuer_id": "revenue_dept",
       "name": "Revenue Department",
-      "prefix": "INC-",
-      "file": "../backend/data/mock_records.json"
+      "document_type": "income_certificate",
+      "file": "data/mock_records.json",
+      "disclose_values": false
     }
   ]
 }

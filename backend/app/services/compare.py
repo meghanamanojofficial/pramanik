@@ -4,6 +4,7 @@ from typing import Optional
 NOT_FOUND = "not found"
 NOT_QUERIED = "not queried"
 UNREACHABLE = "unreachable"
+UNAVAILABLE = "unavailable"  # issuer reachable (or not configured) but could not answer
 MISMATCH = "does not match"  # the issuer says no; it does not reveal its own value
 
 

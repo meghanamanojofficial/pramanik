@@ -1,7 +1,7 @@
 {
   "base_url": "http://localhost:8001",
   "document_type": "income_certificate",
-  "records_file": "data/mock_records.json",
+  "records_file": "../issuer_service/data/mock_records.json",
   "audit_file": "audit.log",
   "officer_id": "OFF-TEST",
   "leak_check_case_id": "CASE-LEAKCHECK-77123",
