@@ -41,7 +41,10 @@ def ensure_keys() -> None:
         subprocess.call([sys.executable, f"tools/{script}"], cwd=BACKEND)
 
 
-def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int = 30) -> None:
+def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int | None = None) -> None:
+    """Wait for /health. The first start can be slow (virus scanners, synced folders such as OneDrive), so the
+    default is generous; set PRAMANIK_START_TIMEOUT (seconds) to change it."""
+    seconds = seconds or int(os.environ.get("PRAMANIK_START_TIMEOUT", "120"))
     deadline = time.time() + seconds
     while time.time() < deadline:
         if proc.poll() is not None:
@@ -51,7 +54,12 @@ def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int = 30) -> 
                 return
         except (urllib.error.URLError, OSError):
             time.sleep(0.5)
-    sys.exit(f"{name} did not start within {seconds}s")
+    sys.exit(f"{name} did not start within {seconds}s.\n"
+             f"Start it by hand to see the real error (one terminal each):\n"
+             f"  issuer service:  cd issuer_service  &&  python -m uvicorn main:app --port 8002\n"
+             f"  Pramanik:        cd backend  &&  python -m uvicorn app.main:app --port 8001\n"
+             f"Common causes: a folder synced by OneDrive (move the project out of it), a leftover DATABASE_URL in "
+             f"backend/.env, or the port already being used by an earlier run.")
 
 
 def serve(cwd: Path, app: str, port: int, reload: bool) -> subprocess.Popen:

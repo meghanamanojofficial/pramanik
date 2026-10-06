@@ -51,6 +51,17 @@ class LedgerTests(Isolated):
         for secret in (b"CASE-SECRET-77", b"INC-2024-0001", b"Asha", b"250000"):
             self.assertNotIn(secret, blob)
 
+    def test_failed_first_connection_is_not_remembered_as_success(self):
+        """Regression: init() once reported True after the database had refused it."""
+        import os
+        blocker = self.tmp / "a_file"
+        blocker.write_text("not a directory")
+        os.environ["DATABASE_URL"] = "sqlite:///" + (blocker / "sub" / "y.db").as_posix()  # can never be created
+        ledger._engine = None
+        self.assertFalse(ledger.init())
+        self.assertFalse(ledger.init())  # asking again must not flip to True
+        self.assertIsNone(self.record("C1"))  # and writes fail safe
+
     def test_chain_detects_edits_and_deletions(self):
         for case in ("C1", "C2", "C3"):
             self.record(case)

@@ -74,15 +74,20 @@ def enabled() -> bool:
 
 
 def _get_engine():
+    """The engine for the configured database. It is remembered only once its tables exist, so a failed
+    first attempt (database down, driver missing) is retried next time instead of being treated as ready."""
     global _engine, _engine_url
     u = url()
-    if _engine is None or _engine_url != u:
-        if u.startswith("sqlite:///"):
-            Path(u[len("sqlite:///"):]).parent.mkdir(parents=True, exist_ok=True)
-        _engine = create_engine(u, pool_pre_ping=True)
-        _engine_url = u
-        Base.metadata.create_all(_engine)
-    return _engine
+    if _engine is not None and _engine_url == u:
+        return _engine
+    if u.startswith("sqlite:///"):
+        Path(u[len("sqlite:///"):]).parent.mkdir(parents=True, exist_ok=True)
+    # a database that does not answer must not make every request wait: give up after a few seconds
+    args = {"connect_timeout": 3} if u.startswith("postgresql") else {}
+    engine = create_engine(u, pool_pre_ping=True, connect_args=args)
+    Base.metadata.create_all(engine)  # raises if the database cannot be reached
+    _engine, _engine_url = engine, u
+    return engine
 
 
 def init() -> bool:
