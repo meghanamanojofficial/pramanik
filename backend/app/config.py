@@ -89,4 +89,5 @@ def public_config() -> dict:
         "verdict_labels": cfg["verdict_labels"],
         "risk_labels": cfg["risk_labels"],
         "samples": cfg["samples"],
+        "support_email": cfg.get("support_email", ""),
     }
