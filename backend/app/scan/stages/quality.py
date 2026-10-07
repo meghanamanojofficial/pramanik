@@ -20,7 +20,13 @@ def load_image(raw: bytes) -> tuple[np.ndarray | None, Signal | None]:
         pil = Image.open(io.BytesIO(raw))
         if pil.width * pil.height > cfg["max_image_pixels"]:
             raise ValueError("too many pixels")
-        pil = ImageOps.exif_transpose(pil).convert("RGB")
+        side = cfg.get("max_image_side", 3000)
+        if max(pil.size) > side:
+            pil.draft("RGB", (side, side))   # JPEG: decode at a reduced scale, so a 12 MP photo never fills memory
+        pil = ImageOps.exif_transpose(pil)   # phone photos carry their rotation in EXIF
+        if max(pil.size) > side:             # OCR reads at most 2400 px anyway (config ocr.max_dimension)
+            pil.thumbnail((side, side), Image.LANCZOS)
+        pil = pil.convert("RGB")
         img = np.array(pil)
         if img.size == 0:
             raise ValueError("empty")

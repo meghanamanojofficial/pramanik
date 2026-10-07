@@ -11,7 +11,7 @@ from starlette.formparsers import MultiPartParser
 
 from . import config, issuer_client, security
 from .issuers import mock_issuer
-from .routers import auth, pages, verify
+from .routers import auth, demo, pages, verify
 from .scan.stages import ocr
 from .services import accounts, doctypes, ledger, signing
 
@@ -89,6 +89,7 @@ async def generic_validation_error(request: Request, exc: RequestValidationError
 app.include_router(auth.router)
 app.include_router(verify.router)
 app.include_router(pages.router)
+app.include_router(demo.router)
 app.mount("/app/js", StaticFiles(directory=pages.FRONTEND / "js"), name="app-js")
 app.mount("/app/css", StaticFiles(directory=pages.FRONTEND / "css"), name="app-css")
 app.mount("/app/fonts", StaticFiles(directory=pages.FRONTEND / "fonts"), name="app-fonts")

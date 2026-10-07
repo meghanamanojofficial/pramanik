@@ -57,5 +57,6 @@
   },
   "pdf_visual_check": {
     "enabled": true
-  }
+  },
+  "max_image_side": 3000
 }

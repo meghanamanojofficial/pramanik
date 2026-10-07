@@ -85,7 +85,7 @@ Open <http://localhost:8001>. The pages are served by the backend itself (no sep
    the risk triage and what to do next. *Audits & History* lists your own recent checks.
 
 The page files are in `frontend/` (see [`frontend/README.md`](frontend/README.md)); the request/response contract is
-[`backend/API.md`](backend/API.md). Going live? Read [`deploy/README.md`](deploy/README.md).
+[`backend/API.md`](backend/API.md). Going live? Read [`deploy/README.md`](deploy/README.md); for Render, [`deploy/RENDER.md`](deploy/RENDER.md).
 
 ## Quick start
 
@@ -144,6 +144,8 @@ python run_all.py --test                                          # everything, 
 | The issuer's (mock) records | `issuer_service/data/mock_records.json` |
 | Photo/scan thresholds, link allow-list, reuse limits | `backend/config/scan.json` |
 | Risk score weights and levels | `backend/config/risk.json` |
+| Public demo: sample documents at `/demo` | `PRAMANIK_DEMO=1` (environment) |
+| Photos read at once (memory) | `PRAMANIK_MAX_SCANS` (environment; default from `scan.json`) |
 | Issuer-answer cache on/off and lifetime | `backend/config/cache.json` |
 | Test inputs | `backend/config/test_cases.json` |
 

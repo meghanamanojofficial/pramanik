@@ -6,7 +6,8 @@
     python run_all.py --test     # start both, generate the test PDFs, run every test, then stop
     python run_all.py --host 0.0.0.0   # reachable from other machines (put HTTPS in front: see deploy/README.md)
 
-Ports are fixed: issuer service 8002 (backend/config/issuers.json points there), Pramanik 8001.
+Ports: the issuer service is always 8002 (backend/config/issuers.json points there). Pramanik uses 8001, or the
+PORT environment variable when it is set (hosting platforms such as Render set it); `--test` always uses 8001.
 Press Ctrl+C to stop both.
 """
 import argparse
@@ -21,7 +22,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 BACKEND, ISSUER = ROOT / "backend", ROOT / "issuer_service"
-ISSUER_URL, BACKEND_URL = "http://127.0.0.1:8002", "http://127.0.0.1:8001"
+ISSUER_PORT = 8002
+ISSUER_URL = f"http://127.0.0.1:{ISSUER_PORT}"
 
 
 def ensure_keys() -> None:
@@ -44,8 +46,9 @@ def ensure_keys() -> None:
 
 def ensure_demo_docs(force: bool = False) -> None:
     """The demo PDFs and photos are generated per machine (they carry QR codes signed with this machine's key).
-    A production deployment sets PRAMANIK_SKIP_DEMO_DOCS=1: it has no use for sample certificates."""
-    if os.environ.get("PRAMANIK_SKIP_DEMO_DOCS") == "1":
+    A production deployment sets PRAMANIK_SKIP_DEMO_DOCS=1: it has no use for sample certificates, unless it is a
+    public demo (PRAMANIK_DEMO=1), which makes them and offers them for download at /demo."""
+    if os.environ.get("PRAMANIK_SKIP_DEMO_DOCS") == "1" and os.environ.get("PRAMANIK_DEMO") != "1":
         return
     if force or not (ROOT / "demo_docs" / "scans" / "genuine_clean.jpg").exists() or not (ROOT / "demo_docs" / "pdfs" / "hostile_name.pdf").exists():
         print("Creating the demo documents...")
@@ -68,8 +71,8 @@ def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int | None = 
             time.sleep(0.5)
     sys.exit(f"{name} did not start within {seconds}s.\n"
              f"Start it by hand to see the real error (one terminal each):\n"
-             f"  issuer service:  cd issuer_service  &&  python -m uvicorn main:app --port 8002\n"
-             f"  Pramanik:        cd backend  &&  python -m uvicorn app.main:app --port 8001\n"
+             f"  issuer service:  cd issuer_service  &&  python -m uvicorn main:app --port {ISSUER_PORT}\n"
+             f"  Pramanik:        cd backend  &&  python -m uvicorn app.main:app --port {url.rsplit(':', 1)[1]}\n"
              f"Common causes: a folder synced by OneDrive (move the project out of it), a leftover DATABASE_URL in "
              f"backend/.env, or the port already being used by an earlier run.")
 
@@ -121,6 +124,10 @@ def main() -> int:
     ap.add_argument("--test", action="store_true", help="run all tests against the started services, then stop")
     ap.add_argument("--host", default="127.0.0.1", help="address for the Pramanik web server (default: this machine only)")
     args = ap.parse_args()
+    port = 8001 if args.test else int(os.environ.get("PORT") or 8001)
+    if port == ISSUER_PORT:
+        sys.exit(f"PORT={port} is used by the issuer service; choose another port.")
+    backend_url = f"http://127.0.0.1:{port}"
 
     # `docker stop` / `systemctl stop` send SIGTERM: shut both servers down cleanly, as Ctrl+C does
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
@@ -133,19 +140,19 @@ def main() -> int:
         os.environ["PRAMANIK_SIGNUP"] = "open"
     procs = []
     try:
-        issuer = serve(ISSUER, "main:app", 8002, args.reload)  # the issuer is only ever reached from this machine
+        issuer = serve(ISSUER, "main:app", ISSUER_PORT, args.reload)  # the issuer is only ever reached from this machine
         procs.append(issuer)
         wait_for(ISSUER_URL, "issuer service", issuer)
-        backend = serve(BACKEND, "app.main:app", 8001, args.reload, args.host)
+        backend = serve(BACKEND, "app.main:app", port, args.reload, args.host)
         procs.append(backend)
-        wait_for(BACKEND_URL, "Pramanik backend", backend)
+        wait_for(backend_url, "Pramanik backend", backend)
 
         if args.test:
             failed = run_tests()
             print("\nALL TESTS PASSED" if not failed else f"\n{failed} test step(s) FAILED")
             return 1 if failed else 0
 
-        print(f"\nPramanik is running: open {BACKEND_URL}/ in a browser   (issuer service: {ISSUER_URL})\nCtrl+C to stop.")
+        print(f"\nPramanik is running: open {backend_url}/ in a browser   (issuer service: {ISSUER_URL})\nCtrl+C to stop.")
         while all(p.poll() is None for p in procs):
             time.sleep(1)
         return 1

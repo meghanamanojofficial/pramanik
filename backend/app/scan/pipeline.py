@@ -9,6 +9,7 @@ applies to both. It stops early, before the issuer is asked, only when the image
                    two passes disagree). A shaky reading must never produce an accusation.
     UNVERIFIABLE   this server has no OCR engine installed.
 """
+import os
 import threading
 from typing import Optional
 
@@ -29,7 +30,7 @@ def _gate() -> threading.BoundedSemaphore:
     global _slots
     with _slots_lock:
         if _slots is None:
-            _slots = threading.BoundedSemaphore(max(1, int(config.scan()["max_concurrent_scans"])))
+            _slots = threading.BoundedSemaphore(max(1, int(os.environ.get("PRAMANIK_MAX_SCANS") or config.scan()["max_concurrent_scans"])))
         return _slots
 
 

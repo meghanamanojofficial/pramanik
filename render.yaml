@@ -1,0 +1,25 @@
+# Render Blueprint: New + > Blueprint > pick this repository. See deploy/RENDER.md.
+services:
+  - type: web
+    name: pramanik
+    runtime: docker
+    plan: standard           # 2 GB RAM: measured need is ~0.5 GB for one large photo, and a 512 MB plan is killed mid-scan.
+                             # A persistent disk needs a paid plan. If Render rejects this name, pick a 1 GB+ plan in the dashboard.
+    numInstances: 1          # the reuse ledger and login throttle live in one process: never scale this up
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: pramanik-state   # keys, accounts, reuse ledger, audit log: must survive restarts and deploys
+      mountPath: /state
+      sizeGB: 1
+    envVars:
+      - key: PRAMANIK_SIGNUP_CODE
+        sync: false          # Render asks you for it; anyone who knows it can create an account
+      - key: PRAMANIK_SESSION_HOURS
+        value: "8"
+      - key: PRAMANIK_MAX_SCANS
+        value: "1"           # photos are read one at a time: keeps memory low on small plans
+      - key: PRAMANIK_SKIP_DEMO_DOCS
+        value: "1"
+      - key: PRAMANIK_DEMO
+        value: "1"           # public demo: offers sample documents at /demo. Remove this line for real use.

@@ -17,6 +17,7 @@ imagehash
 # Signed QR codes (Ed25519) and the reuse ledger.
 cryptography
 sqlalchemy
+# Needed only to run the tests (Starlette's test client).
+httpx2
 # Optional QR fallback; needs the zbar system library (apt install libzbar0 / brew install zbar).
 pyzbar
-httpx2

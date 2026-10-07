@@ -56,6 +56,16 @@ class QualityTests(unittest.TestCase):
         sig, img = quality.check_quality(b"\xff\xd8\xff not really a jpeg")
         self.assertEqual((img, sig[0].name), (None, "quality_invalid_image"))
 
+    def test_huge_photos_are_shrunk_on_load_and_small_ones_are_left_alone(self):
+        big = np.full((4200, 3000, 3), 250, np.uint8)       # about 12.6 MP, like a phone photo
+        cv2.putText(big, "INCOME CERTIFICATE", (200, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (10, 10, 10), 6)
+        loaded, problem = quality.load_image(jpeg(big))
+        self.assertIsNone(problem)
+        self.assertLessEqual(max(loaded.shape[:2]), 3000)
+        self.assertAlmostEqual(loaded.shape[0] / loaded.shape[1], 4200 / 3000, delta=0.02)   # proportions kept
+        small, _ = quality.load_image(jpeg(page()))
+        self.assertEqual(small.shape[:2], (1200, 900))
+
     def test_exif_rotation_is_applied(self):
         up = page(width=700, height=1000)
         sideways = np.ascontiguousarray(np.rot90(up, 1))

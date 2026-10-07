@@ -221,6 +221,44 @@ class AccessTests(Api):
         self.assertEqual(got[0]["doc_hash"], f"{2999:064d}")
 
 
+class DemoTests(Api):
+    def setUp(self):
+        super().setUp()
+        from app.routers import demo
+        self.demo = demo
+        self._dir = demo.DEMO_DIR
+        demo.DEMO_DIR = self.tmp / "demo_docs"
+        (demo.DEMO_DIR / "pdfs").mkdir(parents=True)
+        (demo.DEMO_DIR / "pdfs" / "genuine.pdf").write_bytes(b"%PDF-1.4 sample")
+        (demo.DEMO_DIR / "pdfs" / "secret.txt").write_text("not on the list")
+        os.environ.pop("PRAMANIK_DEMO", None)
+
+    def tearDown(self):
+        self.demo.DEMO_DIR = self._dir
+        os.environ.pop("PRAMANIK_DEMO", None)
+        super().tearDown()
+
+    def test_off_by_default(self):
+        self.signed_in()
+        self.assertEqual(self.client.get("/demo").status_code, 404)
+        self.assertEqual(self.client.get("/demo/files/genuine.pdf").status_code, 404)
+
+    def test_needs_a_signed_in_officer_and_serves_only_the_listed_files(self):
+        os.environ["PRAMANIK_DEMO"] = "1"
+        self.assertEqual(self.client.get("/demo").headers["location"], "/app/signin.html")
+        self.assertEqual(self.client.get("/demo/files/genuine.pdf").status_code, 303)
+        self.signed_in()
+        page = self.client.get("/demo")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("genuine.pdf", page.text); self.assertNotIn("secret.txt", page.text)
+        self.assertNotIn("edited_amount.pdf", page.text)  # listed, but not generated on this server
+        got = self.client.get("/demo/files/genuine.pdf")
+        self.assertEqual((got.status_code, got.content), (200, b"%PDF-1.4 sample"))
+        self.assertIn("attachment", got.headers["content-disposition"])
+        for name in ("secret.txt", "..%2fsecret.txt", "edited_amount.pdf", "../ui.json"):
+            self.assertEqual(self.client.get(f"/demo/files/{name}").status_code, 404, name)
+
+
 class ShippedPagesTests(unittest.TestCase):
     pages = ["signin", "creds", "maindash", "analysing", "result"]
 

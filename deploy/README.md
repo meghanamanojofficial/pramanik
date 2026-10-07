@@ -1,6 +1,8 @@
 # Deploying Pramanik
 
-Two ways: **Docker** (one container, one state volume) or **a plain Linux server** (systemd). Either way, put **HTTPS** in
+**On Render?** Follow [`RENDER.md`](RENDER.md) (the repository's `render.yaml` sets it up).
+
+Other ways: **Docker** (one container, one state volume) or **a plain Linux server** (systemd). Either way, put **HTTPS** in
 front of it: officers sign in with a password, so the public side must not be plain HTTP.
 
 > What was tested: the application, the reverse-proxy behaviour with nginx (TLS, `Secure` cookies, HSTS, the upload size

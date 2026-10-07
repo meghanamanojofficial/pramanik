@@ -2,7 +2,7 @@
 # (keys, accounts, the reuse ledger, audit logs) lives in the /state volume; the code and the built front end do not.
 FROM python:3.12-slim
 
-ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 \
     PRAMANIK_SKIP_DEMO_DOCS=1 \
     FORWARDED_ALLOW_IPS=*
 
@@ -28,11 +28,13 @@ RUN useradd --create-home --uid 10001 pramanik \
  && ln -s /state/issuer_keys.json backend/config/issuer_keys.json \
  && ln -s /state/audit.log backend/audit.log \
  && ln -s /state/issuer_audit.jsonl issuer_service/audit.jsonl \
+ && mkdir -p demo_docs/pdfs demo_docs/scans && chown -R pramanik demo_docs \
  && chmod +x docker/entrypoint.sh
 
-USER pramanik
+# No USER line on purpose: the entrypoint starts as root only to fix the disk's ownership, then runs the app as
+# the unprivileged user (see docker/entrypoint.sh).
 EXPOSE 8001
 VOLUME /state
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=4)"
+  CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health' % os.environ.get('PORT', '8001'), timeout=4)"
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
