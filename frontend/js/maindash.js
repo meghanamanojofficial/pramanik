@@ -2,6 +2,7 @@
   'use strict';
   var API = window.PramanikAPI, UI = window.PramanikUI, $ = UI.byId;
   var cfg = null, selectedFile = null, allAudits = [], currentFilter = 'all';
+  var readyResolve, ready = new Promise(function (resolve) { readyResolve = resolve; });   // resolves once the server's settings are applied
 
   /* ---------- toast ---------- */
   var toastTimer;
@@ -116,6 +117,7 @@
 
   async function handleFile(file) {
     if (!file) return;
+    await ready;   // the accepted types and size limit come from the server: never judge a file before they are known
     if (needCaseId()) return;
     var limitMb = (cfg && cfg.max_upload_mb) || 10;
     if (!typeOk(file)) return reject(file, 'Unsupported file. Use a PDF, or a JPG, PNG or WebP photo or scan.', 'Unsupported type');
@@ -262,6 +264,7 @@
     $('userInitial').textContent = (user.full_name.trim()[0] || '?').toUpperCase();
     cfg = await API.fetchUiConfig();
     fillConfig();
+    readyResolve();
     $('caseId').value = API.getCaseId();
     checkSystem();
     showLastResult();

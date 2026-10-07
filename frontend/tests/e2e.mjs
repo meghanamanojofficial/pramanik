@@ -37,7 +37,9 @@ async function toNodeBody(body, readBlob) {
   }
   return body;
 }
+const LATENCY = Number(process.env.E2E_LATENCY_MS || 0);   // simulate a slow network / machine: random delay per request
 async function browserFetch(url, init = {}, origin = BASE, readBlob = null) {
+  if (LATENCY) await sleep(Math.random() * LATENCY);
   let target = new URL(url, origin).href;
   for (let hop = 0; hop < 6; hop++) {
     const headers = new Headers(init.headers || {});
@@ -89,9 +91,12 @@ const store = (w) => Object.fromEntries(Array.from({ length: w.sessionStorage.le
 const $ = (w, sel) => w.document.querySelector(sel);
 const text = (w, sel) => ($(w, sel) ? $(w, sel).textContent : null);
 
+// The dashboard shows the officer first, then applies the server's settings: wait for both before looking at it.
+const dashboardReady = (w) => until(() => text(w, '#userName') !== '…' && text(w, '#sysIssuer') !== 'ISSUER: …', 30000, 'dashboard to finish loading');
+
 async function uploadViaDashboard(carry, file, caseId, opts = {}) {
   const w = await openPage('maindash.html', carry);
-  await until(() => text(w, '#userName') !== '…', 15000, 'dashboard to load');
+  await dashboardReady(w);
   const input = $(w, '#realFileInput');
   w.document.querySelector('#caseId').value = caseId;
   if (opts.fresh) w.document.querySelector('#freshCheck').checked = true;
@@ -167,7 +172,7 @@ async function main() {
 
   /* -- 4. dashboard -- */
   w = await openPage('maindash.html');
-  await until(() => text(w, '#userName') !== '…', 15000, 'dashboard');
+  await dashboardReady(w);
   check('dashboard: shows the signed-in officer from the server', text(w, '#userName') === 'Asha Menon' && text(w, '#userRoleBadge') === 'OFC-7001');
   const docs = [...w.document.querySelectorAll('#acceptedDocsList li')].map((l) => l.textContent);
   check('dashboard: lists only the documents actually supported (no Aadhaar, PAN...)', docs.length === 1 && /Income Certificate/.test(docs[0]) && !/Aadhaar|PAN|Vehicle/.test(w.document.body.textContent), docs.join(' | '));
@@ -234,7 +239,7 @@ async function main() {
 
   /* -- 8. history comes from the server and the report is real -- */
   const dash = await openPage('maindash.html', carry);
-  await until(() => text(dash, '#userName') !== '…', 15000);
+  await dashboardReady(dash);
   dash.document.querySelector('#hamburgerBtn').dispatchEvent(new dash.Event('click'));
   await until(() => dash.document.querySelectorAll('.audit-card').length >= 5, 8000, 'history to load');
   const cards = [...dash.document.querySelectorAll('.audit-card')].map((c) => c.textContent);
@@ -257,7 +262,7 @@ async function main() {
 
   /* -- 10. sign out really ends the session -- */
   const out = await openPage('maindash.html', carry);
-  await until(() => text(out, '#userName') !== '…', 15000);
+  await dashboardReady(out);
   out.document.querySelector('#floatingLogoutBtn').dispatchEvent(new out.Event('click'));
   await until(() => out.navs.includes('signin.html'), 8000, 'sign-out');
   check('sign-out: browser storage is wiped', out.sessionStorage.length === 0);
