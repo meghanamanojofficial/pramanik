@@ -6,7 +6,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
-const pages = ['signin', 'creds', 'maindash', 'analysing', 'result'];
+const pages = ['landing', 'signin', 'creds', 'maindash', 'analysing', 'result'];
 mkdirSync(resolve(root, 'css'), { recursive: true });
 mkdirSync(resolve(root, 'fonts'), { recursive: true });
 

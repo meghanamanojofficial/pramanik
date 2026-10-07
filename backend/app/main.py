@@ -65,7 +65,7 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("Permissions-Policy", "camera=(self), microphone=(), geolocation=()")
     if request.url.path.startswith("/api/") or request.url.path == "/verify":
         response.headers.setdefault("Cache-Control", "no-store")  # never cache results or account data
-    elif request.url.path.startswith(("/app/js/", "/app/css/")):
+    elif request.url.path.startswith(("/app/js/", "/app/css/", "/app/img/")):
         # Scripts and styles are re-checked on every load (an unchanged file costs only a tiny 304 answer), so a new
         # deploy can never leave a browser running an old script against a new page.
         response.headers["Cache-Control"] = "no-cache"
@@ -99,6 +99,7 @@ app.include_router(demo.router)
 app.mount("/app/js", StaticFiles(directory=pages.FRONTEND / "js"), name="app-js")
 app.mount("/app/css", StaticFiles(directory=pages.FRONTEND / "css"), name="app-css")
 app.mount("/app/fonts", StaticFiles(directory=pages.FRONTEND / "fonts"), name="app-fonts")
+app.mount("/app/img", StaticFiles(directory=pages.FRONTEND / "img"), name="app-img")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
