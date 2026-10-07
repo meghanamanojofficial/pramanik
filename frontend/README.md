@@ -5,6 +5,7 @@ wired to the real API.
 
 | Page | Purpose | Script |
 |---|---|---|
+| `landing.html` | public landing page (scattered documents, manifesto, sign-up link); `/` opens it when signed out | `js/landing.js` |
 | `signin.html` | create an account / log in | `js/signin.js` |
 | `creds.html` | profile: name, unique officer ID | `js/creds.js` |
 | `maindash.html` | case ID, upload (file, drag-and-drop, camera), history drawer | `js/maindash.js` |

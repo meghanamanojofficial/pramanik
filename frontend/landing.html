@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>PRAMANIK - Document verification</title>
+<meta name="description" content="Pramanik asks the issuing department whether a certificate matches its record.">
+<style data-purpose="hero-fade">
+    /* Scattered documents fade out towards the centre and sit slightly out of focus, so the name reads as lifted off them. */
+    .docs-fade {
+      -webkit-mask-image: radial-gradient(ellipse 62% 58% at 50% 46%, transparent 18%, rgba(0, 0, 0, 0.35) 55%, #000 95%);
+              mask-image: radial-gradient(ellipse 62% 58% at 50% 46%, transparent 18%, rgba(0, 0, 0, 0.35) 55%, #000 95%);
+      animation: docs-scatter 1.4s cubic-bezier(.2, .7, .2, 1) backwards;
+    }
+    .doc-card { filter: blur(1px) brightness(0.82) saturate(0.85); animation: card-in 1s ease-out backwards; }
+    .doc-card:hover { filter: none; }
+    .doc-card:nth-child(2) { animation-delay: .08s; } .doc-card:nth-child(3) { animation-delay: .16s; }
+    .doc-card:nth-child(4) { animation-delay: .24s; } .doc-card:nth-child(5) { animation-delay: .32s; }
+    .doc-card:nth-child(6) { animation-delay: .40s; } .doc-card:nth-child(7) { animation-delay: .48s; }
+    .doc-card:nth-child(8) { animation-delay: .56s; }
+
+    /* A pool of background colour behind the name, plus a soft vignette at the edges. */
+    .hero-spotlight {
+      background:
+        radial-gradient(ellipse 40% 34% at 50% 46%, rgba(18, 19, 23, 0.94) 0%, rgba(18, 19, 23, 0.7) 45%, rgba(18, 19, 23, 0) 100%),
+        radial-gradient(ellipse at 50% 46%, rgba(8, 9, 12, 0) 60%, rgba(8, 9, 12, 0.45) 100%);
+    }
+
+    .brand-pop {
+      text-shadow: 0 0 1px rgba(255, 255, 255, 0.25), 0 0 42px rgba(147, 210, 205, 0.28), 0 14px 44px rgba(0, 0, 0, 0.95);
+      animation: brand-pop 1.1s cubic-bezier(.2, .9, .25, 1.15) .35s both;
+    }
+    .rise-in { animation: rise-in .8s ease-out .9s backwards; }
+
+    @keyframes docs-scatter { from { opacity: 0; transform: scale(1.12); } }
+    @keyframes card-in { from { opacity: 0; } }
+    @keyframes brand-pop {
+      0% { opacity: 0; transform: scale(0.82); filter: blur(16px); }
+      65% { opacity: 1; filter: blur(0); }
+      100% { opacity: 1; transform: scale(1); filter: blur(0); }
+    }
+    @keyframes rise-in { from { opacity: 0; transform: translateY(14px); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .docs-fade, .doc-card, .brand-pop, .rise-in { animation: none; }
+    }
+  </style>
+<link href="css/fonts.css" rel="stylesheet"><link href="css/landing.css" rel="stylesheet">
+</head>
+<body class="bg-background font-body-md text-on-surface selection:bg-secondary-container selection:text-secondary-fixed min-h-screen relative overflow-x-hidden">
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10">
+<div class="h-16 w-full px-gutter flex items-center justify-between">
+<a class="flex items-center gap-space-sm group" href="landing.html">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center border border-outline-variant/30 group-hover:border-secondary transition-colors">
+<svg class="w-5 h-5 text-secondary" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+</div>
+<span class="font-display-brand text-headline-md tracking-wider text-on-surface">PRAMANIK</span>
+</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" href="signin.html?mode=login">Log in</a>
+</div>
+</header>
+<main class="w-full pt-16 bg-background min-h-screen">
+<div class="flex flex-col w-full relative overflow-hidden min-h-[calc(100vh-4rem)]">
+<!-- Ambient light orbs -->
+<div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[760px] h-[760px] bg-secondary/10 rounded-full blur-[140px] pointer-events-none z-0"></div>
+<div class="absolute top-[480px] -left-48 w-[520px] h-[520px] bg-primary/10 rounded-full blur-[160px] pointer-events-none z-0"></div>
+<div class="absolute top-[320px] -right-48 w-[480px] h-[480px] bg-secondary-container/20 rounded-full blur-[130px] pointer-events-none z-0"></div>
+<div class="relative w-full min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center px-gutter pt-8 pb-12 overflow-hidden z-10 transition-all duration-700 select-none" id="interactive-stage">
+<!-- Scattered documents. The fade (landing-fx.css) dims them towards the centre so the name stands out. -->
+<div class="docs-fade absolute inset-0 max-w-7xl mx-auto pointer-events-none transition-all duration-700 ease-out z-0" id="documents-cloud">
+<div class="doc-card absolute top-[5%] left-[6%] lg:left-[10%] w-56 lg:w-64 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-red-500/30 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform -rotate-3 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 ">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Top secret memorandum" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-memo.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded border bg-red-950/80 border-red-500/40 text-red-300 text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">TOP SECRET · E.O. 11652</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span class="flex items-center gap-1 text-secondary"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> FORENSIC INSPECTION</span>
+<span class="bg-surface-container-high/90 px-1 py-0.5 rounded text-secondary">DOD_SEC_OK</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>DOCKET: WDC-20007</span>
+<span class="text-secondary font-semibold">PASS: 99.98%</span>
+</div>
+</div>
+<div class="doc-card absolute top-[5%] right-[6%] lg:right-[10%] w-56 lg:w-64 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-secondary/30 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform rotate-3 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 ">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Classified intelligence docket" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-docket.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded border bg-surface-container-high/90 border-secondary/40 text-secondary text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">CLASSIFIED ARCHIVE · HASH CHECKED</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span>CASE: 85-40R1</span>
+<span class="text-secondary flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> EYES ONLY</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>SHA-256: e82f...a17b</span>
+<span class="text-secondary font-semibold">TAMPER: 0.00%</span>
+</div>
+</div>
+<div class="doc-card absolute top-[28%] left-[2%] lg:left-[5%] w-56 lg:w-60 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-outline-variant/30 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform -rotate-2 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 hidden sm:block">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Visa entry clearance page" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-visa.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded border bg-surface-container-high/90 border-outline-variant/30 text-primary text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">VISA CONTROL · UKBA</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span>SERIAL: G194812</span>
+<span class="text-secondary flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> AUTH</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>PASSPORT: UKP-5903</span>
+<span class="text-secondary font-semibold">INTEGRITY: 100%</span>
+</div>
+</div>
+<div class="doc-card absolute top-[28%] right-[2%] lg:right-[5%] w-56 lg:w-64 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-amber-500/30 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform rotate-2 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 hidden sm:block">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Notary certificate with gold seal" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-notary.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded border bg-surface-container-high/90 border-amber-500/40 text-amber-300 text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">JUDICIAL NOTARY EX-A1 · VALID</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span>SUPREME COURT DOCKET</span>
+<span class="text-amber-400 flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> GOLD SEAL</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>DOCKET: 84-CV-91012</span>
+<span class="text-secondary font-semibold">NOTARIZED: AUTH</span>
+</div>
+</div>
+<div class="doc-card absolute bottom-[24%] left-[4%] lg:left-[8%] w-56 lg:w-64 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-amber-500/40 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform -rotate-1 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 ">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Land registry certificate with wax seal" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-deed.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded border bg-surface-container-high/90 border-amber-500/40 text-amber-300 text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">LAND REGISTRY · DEED VERIFIED</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span>DOCKET #B-88391</span>
+<span class="text-amber-400 flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> NOTARIAL WAX</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>RECORD: 1883 CLERK</span>
+<span class="text-secondary font-semibold">AUTHENTICATED: 100%</span>
+</div>
+</div>
+<div class="doc-card absolute bottom-[24%] right-[4%] lg:right-[8%] w-56 lg:w-64 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-secondary/40 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform rotate-2 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 ">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Forensic identification card" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-idcard.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded border bg-surface-container-high/90 border-secondary/40 text-secondary text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">BIOMETRIC ID · PASS: 99.94%</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span>NO. FD 749011C</span>
+<span class="text-secondary flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> BIOMETRIC</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>ID: E. VANCE</span>
+<span class="text-secondary font-semibold">GUILLOCHE: VALID</span>
+</div>
+</div>
+<div class="doc-card absolute bottom-[3%] left-[14%] lg:left-[20%] w-56 lg:w-64 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-primary/30 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform rotate-2 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 hidden sm:block">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Diplomatic passport and dossier" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-passport.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded border bg-surface-container-high/90 border-primary/40 text-primary text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">PASSPORT DOSSIER · TAMPER CHECKED</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span>PASSEPORT DIPLOMATIQUE</span>
+<span class="text-secondary flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> WAX SEAL</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>ARCHIVE: 14 AVRIL 1978</span>
+<span class="text-secondary font-semibold">INTEGRITY VALID</span>
+</div>
+</div>
+<div class="doc-card absolute bottom-[3%] right-[14%] lg:right-[20%] w-56 lg:w-64 rounded-xl p-2.5 bg-surface-container/90 backdrop-blur-xl border border-red-500/30 shadow-[0_15px_35px_rgba(0,0,0,0.6)] transition-all duration-700 transform -rotate-2 hover:rotate-0 hover:scale-105 pointer-events-auto group z-10 hidden sm:block">
+<div class="relative w-full h-32 lg:h-36 rounded-lg overflow-hidden bg-black/40">
+<img alt="Declassified case file with fingerprint exhibit" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" src="img/doc-dossier.svg" loading="lazy" decoding="async">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded border bg-red-950/80 border-red-500/40 text-red-300 text-[9px] font-code-sm font-bold uppercase tracking-wider backdrop-blur-sm">DOSSIER #49-734A · FORENSIC</div>
+<div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-code-sm text-on-surface">
+<span>EXHIBIT A FINGERPRINT</span>
+<span class="text-secondary flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> DECLASSIFIED</span>
+</div>
+</div>
+<div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-code-sm text-on-surface-variant">
+<span>CASE CLOSED: 11/10/53</span>
+<span class="text-secondary font-semibold">ARCHIVED</span>
+</div>
+</div>
+</div>
+<div class="hero-spotlight absolute inset-0 pointer-events-none z-[5]" aria-hidden="true"></div>
+<!-- Centre: name, tagline, manifesto, sign-up -->
+<div class="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto my-auto px-space-md transition-all duration-700 w-full" id="stage-center-container">
+<div class="flex flex-col items-center transition-all duration-700 transform w-full" id="brand-cluster">
+<div class="rise-in inline-flex items-center gap-space-sm px-space-md py-1 rounded-full bg-surface-container-high/80 backdrop-blur-md mb-space-md shadow-sm border border-outline-variant/20">
+<svg class="w-4 h-4 text-secondary" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+<span class="font-label-caps text-label-caps text-on-surface tracking-widest uppercase">Cryptographic Forensic Gateway</span>
+</div>
+<h1 class="brand-pop font-display-brand text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-[0.25em] md:tracking-[0.38em] text-on-surface font-black transition-all duration-700" id="brand-title">PRAMANIK</h1>
+<p class="rise-in mt-space-md font-body-lg text-body-lg text-on-surface-variant max-w-xl transition-all duration-500" id="brand-tagline">
+Zero-Assumption Forensic Verification Infrastructure for Government, Judicial, and Institutional Scans.
+</p>
+</div>
+<div class="opacity-0 translate-y-10 pointer-events-none max-h-0 overflow-hidden transition-all duration-700 ease-out flex flex-col items-center text-left w-full" id="manifesto-panel">
+<div class="mt-space-lg w-full bg-surface-container/95 backdrop-blur-2xl rounded-2xl p-space-lg md:p-space-xl shadow-2xl border border-outline-variant/30 relative">
+<div class="flex items-center justify-between gap-space-sm pb-space-md border-b border-outline-variant/20">
+<div class="flex items-center gap-space-sm">
+<svg class="w-5 h-5 text-secondary shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+<span class="font-label-caps text-label-caps text-secondary tracking-widest uppercase">Pramanik protocol doctrine • source of truth</span>
+</div>
+</div>
+<div class="font-body-lg text-body-lg text-on-surface leading-relaxed space-y-4 pt-space-md">
+<p class="font-headline-md text-headline-md text-on-surface font-medium leading-snug">
+Pramanik is a document-authentication and fraud-detection system that connects available government verification sources through authorised APIs or official verification services.
+</p>
+<p class="text-on-surface-variant">
+It accepts physical scans and digital files, verifies issuer records where available, validates QR codes and digital signatures, compares document fields, detects possible tampering and creates an auditable report for human review. The issuing department is the source of truth. Pramanik never decides whether a certificate is genuine on its own; it asks the department that issued it.
+</p>
+</div>
+</div>
+</div>
+<div class="rise-in mt-space-xl flex justify-center items-center w-full transition-all duration-500" id="cta-action-group">
+<a class="px-10 py-3.5 rounded-xl bg-primary text-on-primary font-headline-md text-body-lg font-bold shadow-[0_10px_25px_rgba(185,200,222,0.25)] hover:bg-primary-fixed hover:text-on-primary-fixed hover:scale-[1.03] active:scale-95 transition-all duration-200 flex items-center justify-center gap-space-sm group" href="signin.html">
+<span>Sign Up</span>
+<svg class="w-5 h-5 group-hover:translate-x-1.5 transition-transform" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+</a>
+</div>
+<button class="rise-in mt-space-lg flex flex-col items-center gap-1 text-on-surface-variant hover:text-secondary transition-colors cursor-pointer group pointer-events-auto" id="swipe-hint-btn" type="button" aria-controls="manifesto-panel" aria-expanded="false">
+<span class="font-label-caps text-label-caps tracking-widest uppercase text-[10px]" id="swipe-hint-text">Scroll or tap to explore manifesto</span>
+<span class="w-8 h-8 rounded-full bg-surface-container-high/60 flex items-center justify-center group-hover:bg-surface-container-highest transition-colors">
+<svg class="w-5 h-5 text-secondary transition-transform duration-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" id="swipe-icon"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<script src="js/landing.js"></script></body></html>

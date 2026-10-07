@@ -147,7 +147,8 @@ class AccessTests(Api):
 
     def test_pages_follow_the_session(self):
         loc = lambda path: (lambda r: (r.status_code, r.headers.get("location")))(self.client.get(path))
-        self.assertEqual(loc("/"), (303, "/app/signin.html"))
+        self.assertEqual(loc("/"), (303, "/app/landing.html"))
+        self.assertEqual(self.client.get("/app/landing.html").status_code, 200)
         self.assertEqual(loc("/app/maindash.html"), (303, "/app/signin.html"))
         self.assertEqual(loc("/app/creds.html"), (303, "/app/signin.html"))
         self.assertEqual(self.client.get("/app/signin.html").status_code, 200)
@@ -160,6 +161,7 @@ class AccessTests(Api):
         for page in ("maindash.html", "analysing.html", "result.html"):
             self.assertEqual(self.client.get(f"/app/{page}").status_code, 200, page)
         self.assertEqual(loc("/app/signin.html"), (303, "/app/maindash.html"))
+        self.assertEqual(self.client.get("/app/landing.html").status_code, 200)  # the landing page is open to everyone
 
     def test_the_plain_fallback_page_follows_the_same_rules(self):
         self.assertEqual(self.client.get("/classic").headers["location"], "/app/signin.html")
@@ -175,7 +177,7 @@ class AccessTests(Api):
 
     def test_scripts_and_styles_are_rechecked_so_a_deploy_never_leaves_stale_files(self):
         """Regression: a browser kept an old creds.js and ran it against the new page (a field it needed was gone)."""
-        for path in ("/app/js/api.js", "/app/js/creds.js", "/app/css/fonts.css"):
+        for path in ("/app/js/api.js", "/app/js/creds.js", "/app/css/fonts.css", "/app/img/doc-memo.svg"):
             first = self.client.get(path)
             self.assertEqual(first.status_code, 200, path)
             self.assertEqual(first.headers["cache-control"], "no-cache", path)
@@ -271,7 +273,7 @@ class DemoTests(Api):
 
 
 class ShippedPagesTests(unittest.TestCase):
-    pages = ["signin", "creds", "maindash", "analysing", "result"]
+    pages = ["landing", "signin", "creds", "maindash", "analysing", "result"]
 
     def test_no_inline_scripts_no_external_requests_no_inline_handlers(self):
         for page in self.pages:
@@ -284,7 +286,7 @@ class ShippedPagesTests(unittest.TestCase):
     def test_every_referenced_file_exists(self):
         for page in self.pages:
             html = (FRONTEND / f"{page}.html").read_text(encoding="utf-8")
-            for ref in re.findall(r'(?:src|href)="((?:js|css)/[^"]+)"', html):
+            for ref in re.findall(r'(?:src|href)="((?:js|css|img)/[^"]+)"', html):
                 self.assertTrue((FRONTEND / ref).exists(), f"{page}: {ref}")
 
     def test_the_prototype_scaffolding_is_gone(self):
@@ -298,7 +300,7 @@ class ShippedPagesTests(unittest.TestCase):
 
     def test_server_page_list_matches_the_files(self):
         from app.routers import pages
-        for name in pages.PUBLIC | pages.NEEDS_LOGIN | pages.NEEDS_PROFILE:
+        for name in pages.OPEN | pages.PUBLIC | pages.NEEDS_LOGIN | pages.NEEDS_PROFILE:
             self.assertTrue((FRONTEND / name).exists(), name)
 
 

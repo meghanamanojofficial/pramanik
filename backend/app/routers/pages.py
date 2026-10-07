@@ -9,6 +9,7 @@ from ..config import BACKEND_DIR
 router = APIRouter()
 FRONTEND = BACKEND_DIR.parent / "frontend"
 
+OPEN = {"landing.html"}  # anyone, signed in or not
 PUBLIC = {"signin.html"}
 NEEDS_LOGIN = {"creds.html"}
 NEEDS_PROFILE = {"maindash.html", "analysing.html", "result.html"}
@@ -26,14 +27,16 @@ def _go(where: str) -> Response:
 def index(request: Request):
     user = security.current_user(request)
     if user is None:
-        return _go("/app/signin.html")
+        return _go("/app/landing.html")
     return _go("/app/maindash.html" if user.profile_complete else "/app/creds.html")
 
 
 @router.get("/app/{page}", include_in_schema=False)
 def page(page: str, request: Request):
-    if page not in PUBLIC | NEEDS_LOGIN | NEEDS_PROFILE:
+    if page not in OPEN | PUBLIC | NEEDS_LOGIN | NEEDS_PROFILE:
         return Response(status_code=404)
+    if page in OPEN:
+        return _page(FRONTEND / page, security.CSP_APP)
     user = security.current_user(request)
     if page in PUBLIC:
         if user is not None:  # already signed in: skip the form
