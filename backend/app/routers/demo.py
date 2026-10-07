@@ -77,7 +77,7 @@ def demo_page(request: Request):
             "<a href='/app/maindash.html'>dashboard</a>. The last column is what the check should say. Using the same genuine "
             "certificate under many different case IDs correctly raises a reuse warning.</p>"
             "<table><tr><th>File</th><th>What it is</th><th>Expected result</th></tr>" + "".join(rows) + "</table>"
-            + ("" if rows else "<p>No sample documents have been generated on this server.</p>") + "</body></html>")
+            + ("" if rows else "<p>The sample documents are still being prepared (this takes a minute after the server starts). Reload this page shortly.</p>") + "</body></html>")
     return HTMLResponse(body, headers={"Cache-Control": "no-store", "Content-Security-Policy": security.CSP_APP})
 
 

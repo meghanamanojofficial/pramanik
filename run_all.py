@@ -26,9 +26,9 @@ ISSUER_PORT = 8002
 ISSUER_URL = f"http://127.0.0.1:{ISSUER_PORT}"
 
 
-def ensure_keys() -> None:
-    """API keys, QR signing keys and the ledger secret. Signing keys are per machine, so the demo
-    documents (which carry signed QR codes) are regenerated whenever new keys are made."""
+def ensure_keys() -> bool:
+    """API keys, QR signing keys and the ledger secret. Returns True if new keys were made: signing keys are per
+    machine, so the demo documents (which carry signed QR codes) must then be made again."""
     sys.path.insert(0, str(ISSUER))
     import setup_keys
 
@@ -36,24 +36,30 @@ def ensure_keys() -> None:
                 and (BACKEND / "config" / "issuer_keys.json").exists()
                 and "PRAMANIK_FINGERPRINT_KEY" in setup_keys.read_env(BACKEND / ".env"))
     if have_all:
-        return
+        return False
     print("First run: creating keys (never committed)...")
     setup_keys.main()
     setup_keys.setup_signing()
     setup_keys.setup_fingerprint_key()
-    ensure_demo_docs(force=True)
+    return True
 
 
-def ensure_demo_docs(force: bool = False) -> None:
+def ensure_demo_docs(force: bool = False, background: bool = False) -> None:
     """The demo PDFs and photos are generated per machine (they carry QR codes signed with this machine's key).
     A production deployment sets PRAMANIK_SKIP_DEMO_DOCS=1: it has no use for sample certificates, unless it is a
     public demo (PRAMANIK_DEMO=1), which makes them and offers them for download at /demo."""
     if os.environ.get("PRAMANIK_SKIP_DEMO_DOCS") == "1" and os.environ.get("PRAMANIK_DEMO") != "1":
         return
     if force or not (ROOT / "demo_docs" / "scans" / "genuine_clean.jpg").exists() or not (ROOT / "demo_docs" / "pdfs" / "hostile_name.pdf").exists():
-        print("Creating the demo documents...")
-        for script in ("make_test_pdfs.py", "make_scan_samples.py"):
-            subprocess.call([sys.executable, f"tools/{script}"], cwd=BACKEND)
+        def make() -> None:
+            print("Creating the demo documents...")
+            for script in ("make_test_pdfs.py", "make_scan_samples.py"):
+                subprocess.call([sys.executable, f"tools/{script}"], cwd=BACKEND)
+        if background:  # on a slow host, start listening first: the web server must not wait for sample documents
+            import threading
+            threading.Thread(target=make, daemon=True).start()
+        else:
+            make()
 
 
 def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int | None = None) -> None:
@@ -131,8 +137,8 @@ def main() -> int:
 
     # `docker stop` / `systemctl stop` send SIGTERM: shut both servers down cleanly, as Ctrl+C does
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-    ensure_keys()
-    ensure_demo_docs()
+    new_keys = ensure_keys()
+    ensure_demo_docs(force=new_keys, background=not args.test)  # tests make their own documents, in order, as their first steps
     if args.test:  # the tests expect an empty reuse ledger and open sign-up (they create their own accounts)
         import tempfile
         os.environ["DATABASE_URL"] = "sqlite:///" + (Path(tempfile.mkdtemp()) / "acceptance.db").as_posix()

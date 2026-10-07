@@ -4,6 +4,7 @@ Exposure is judged from the paper level and the ink contrast, not the mean brigh
 legitimately averages ~250, which the old mean-based test mistook for glare.
 """
 import io
+import os
 
 import cv2
 import numpy as np
@@ -20,7 +21,7 @@ def load_image(raw: bytes) -> tuple[np.ndarray | None, Signal | None]:
         pil = Image.open(io.BytesIO(raw))
         if pil.width * pil.height > cfg["max_image_pixels"]:
             raise ValueError("too many pixels")
-        side = cfg.get("max_image_side", 3000)
+        side = int(os.environ.get("PRAMANIK_MAX_IMAGE_SIDE") or cfg.get("max_image_side", 3000))
         if max(pil.size) > side:
             pil.draft("RGB", (side, side))   # JPEG: decode at a reduced scale, so a 12 MP photo never fills memory
         pil = ImageOps.exif_transpose(pil)   # phone photos carry their rotation in EXIF
