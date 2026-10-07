@@ -52,4 +52,26 @@
     if (diffY > 40 && stage === 'hero') setStage('manifesto');
     else if (diffY < -40 && stage === 'manifesto' && window.scrollY === 0) setStage('hero');
   }, { passive: true });
+  // Support button: shows the support address from the server's settings.
+  var support = byId('support'), supportBtn = byId('support-btn'), popover = byId('support-popover');
+  var emailEl = byId('support-email'), copyText = byId('support-copy-text');
+  function setPopover(open) { popover.classList.toggle('hidden', !open); supportBtn.setAttribute('aria-expanded', String(open)); }
+  supportBtn.addEventListener('click', function () { setPopover(popover.classList.contains('hidden')); });
+  byId('support-close').addEventListener('click', function () { setPopover(false); });
+  document.addEventListener('click', function (e) { if (!support.contains(e.target)) setPopover(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setPopover(false); });
+  byId('support-copy').addEventListener('click', function () {
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(emailEl.textContent).then(function () {
+      copyText.textContent = 'Copied!';
+      setTimeout(function () { copyText.textContent = 'Copy'; }, 2000);
+    }).catch(function () {});
+  });
+  fetch('/api/ui-config', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }).then(function (cfg) {
+    var email = String(cfg.support_email || '').trim();
+    if (!/^[^\s@<>"]+@[^\s@<>"]+$/.test(email)) return;
+    emailEl.textContent = email;
+    byId('support-mail').href = 'mailto:' + email;
+    support.classList.remove('hidden');
+  }).catch(function () {});
 })();

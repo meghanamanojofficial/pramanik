@@ -4,6 +4,7 @@
   "default_officer_id": "",
   "officer_id_label": "Officer ID",
   "max_upload_mb": 10,
+  "support_email": "paradox1212@gmail.com",
   "purposes": [
     "Benefit application",
     "Eligibility check",

@@ -171,6 +171,10 @@ class AccessTests(Api):
         self.assertIn("'unsafe-inline'", page.headers["content-security-policy"].split("script-src")[1].split(";")[0])  # it has an inline script
         self.assertNotIn("frame-ancestors 'self'", page.headers["content-security-policy"])
 
+    def test_the_support_address_comes_from_the_server(self):
+        cfg = self.client.get("/api/ui-config").json()
+        self.assertIn("@", cfg["support_email"])
+
     def test_the_api_description_is_not_published(self):
         for path in ("/docs", "/redoc", "/openapi.json"):
             self.assertEqual(self.client.get(path).status_code, 404, path)
