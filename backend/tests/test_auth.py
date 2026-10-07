@@ -173,6 +173,17 @@ class AccessTests(Api):
         for path in ("/docs", "/redoc", "/openapi.json"):
             self.assertEqual(self.client.get(path).status_code, 404, path)
 
+    def test_scripts_and_styles_are_rechecked_so_a_deploy_never_leaves_stale_files(self):
+        """Regression: a browser kept an old creds.js and ran it against the new page (a field it needed was gone)."""
+        for path in ("/app/js/api.js", "/app/js/creds.js", "/app/css/fonts.css"):
+            first = self.client.get(path)
+            self.assertEqual(first.status_code, 200, path)
+            self.assertEqual(first.headers["cache-control"], "no-cache", path)
+            self.assertTrue(first.headers.get("etag"), path)
+            again = self.client.get(path, headers={"If-None-Match": first.headers["etag"]})
+            self.assertEqual(again.status_code, 304, path)   # unchanged: a cheap "still current"
+        self.assertIn("max-age", self.client.get("/app/fonts/inter-latin-wght-normal.woff2").headers["cache-control"])
+
     def test_only_listed_pages_are_served(self):
         for path in ("/app/../config/ui.json", "/app/package.json", "/app/build.mjs", "/app/tailwind/base.css", "/app/..%2fbackend%2f.env"):
             self.assertNotEqual(self.client.get(path).status_code, 200, path)
