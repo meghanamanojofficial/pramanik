@@ -11,6 +11,11 @@ import { fileURLToPath } from 'node:url';
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:8001';
 const DOCS = resolve(dirname(fileURLToPath(import.meta.url)), '../../demo_docs');
 const jar = new CookieJar();
+// Every run is its own officer. The audit log outlives the account database, so a fixed officer ID would find earlier
+// runs' checks in its history and make "a new officer has none" depend on what ran before.
+const RUN = Math.random().toString(16).slice(2, 8);
+const EMAIL = `officer-${RUN}@revenue.gov.in`;
+const OFFICER = `OFC-E2E-${RUN}`;
 const results = [];
 let pageErrors = [];
 
@@ -141,7 +146,7 @@ async function main() {
   /* -- 2. sign up through the real form -- */
   let w = await openPage('signin.html');
   await until(() => text(w, '#heading') === 'Create your account', 5000, 'sign-up form');
-  w.document.querySelector('#email').value = 'officer1@revenue.gov.in';
+  w.document.querySelector('#email').value = EMAIL;
   w.document.querySelector('#password').value = 'short';
   w.document.querySelector('#signup-form').dispatchEvent(new w.Event('submit', { cancelable: true }));
   await sleep(200);
@@ -164,7 +169,7 @@ async function main() {
   w.document.querySelector('#creds-form').dispatchEvent(new w.Event('submit', { cancelable: true }));
   await until(() => !$(w, '#formError').classList.contains('hidden'), 5000, 'profile error');
   check('profile: an invalid officer ID is explained, not accepted', /officer ID/i.test(text(w, '#formError')) && w.navs.length === 0);
-  w.document.querySelector('#officerId').value = 'OFC-7001';
+  w.document.querySelector('#officerId').value = OFFICER;
   check('profile: what was typed survives the late server pre-fill', w.document.querySelector('#fullName').value === 'Asha Menon');
   w.document.querySelector('#creds-form').dispatchEvent(new w.Event('submit', { cancelable: true }));
   await until(() => w.navs.length, 5000, 'profile saved');
@@ -173,10 +178,14 @@ async function main() {
   /* -- 4. dashboard -- */
   w = await openPage('maindash.html');
   await dashboardReady(w);
-  check('dashboard: shows the signed-in officer from the server', text(w, '#userName') === 'Asha Menon' && text(w, '#userRoleBadge') === 'OFC-7001');
+  check('dashboard: shows the signed-in officer from the server', text(w, '#userName') === 'Asha Menon' && text(w, '#userRoleBadge') === OFFICER);
   const docs = [...w.document.querySelectorAll('#acceptedDocsList li')].map((l) => l.textContent);
   check('dashboard: lists only the documents actually supported (no Aadhaar, PAN...)', docs.length === 1 && /Income Certificate/.test(docs[0]) && !/Aadhaar|PAN|Vehicle/.test(w.document.body.textContent), docs.join(' | '));
-  check('dashboard: no fabricated history', w.document.querySelectorAll('.audit-card').length === 0 && !/degree_certificate|experience_letter|trade_licence/.test(w.document.body.textContent));
+  await sleep(LATENCY + 300);   // let the page's own history request finish before looking at the page
+  const mine = await (await browserFetch('/api/history')).json();
+  check('dashboard: a new officer has no history, and nothing is made up',
+    Array.isArray(mine) && mine.length === 0 && w.document.querySelectorAll('.audit-card').length === 0
+    && !/degree_certificate|experience_letter|trade_licence/.test(w.document.body.textContent), `server returned ${mine.length}`);
   check('dashboard: telemetry comes from the server', text(w, '#sysStatus') === 'SYSTEM ONLINE' && /REVENUE/.test(text(w, '#sysIssuer')), text(w, '#sysStatus') + ' / ' + text(w, '#sysIssuer'));
   check('dashboard: accepts images as well as PDFs', /image\/jpeg/.test(w.document.querySelector('#realFileInput').getAttribute('accept')));
 
@@ -253,7 +262,7 @@ async function main() {
   reportBtn.dispatchEvent(new dash.Event('click', { bubbles: true }));
   await sleep(100);
   const report = downloaded ? await new Promise((res) => { const fr = new dash.FileReader(); fr.onload = () => res(fr.result); fr.readAsText(downloaded); }) : '';
-  check('report: built from the real result (verdict, hash, officer), not a template', /Result:/.test(report) && /Document hash:  SHA-256 [0-9a-f]{64}/.test(report) && /OFC-7001/.test(report) && !/Cryptographically validated/.test(report), report.slice(0, 200));
+  check('report: built from the real result (verdict, hash, officer), not a template', /Result:/.test(report) && /Document hash:  SHA-256 [0-9a-f]{64}/.test(report) && report.includes(OFFICER) && !/Cryptographically validated/.test(report), report.slice(0, 200));
 
   /* -- 9. a result page opened with nothing to show must not invent one -- */
   const empty = await openPage('result.html', {});
