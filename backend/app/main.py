@@ -37,7 +37,7 @@ async def lifespan(_: FastAPI):
 config.load_env()
 CORS_ORIGINS = [o.strip() for o in os.environ.get("PRAMANIK_CORS_ORIGINS", "").split(",") if o.strip() and o.strip() != "*"]
 
-app = FastAPI(title="Document Verification Platform", docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(title="Document Verification Platform", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
 
 if CORS_ORIGINS:  # only for a front end served from another address (e.g. a dev server); never "*"

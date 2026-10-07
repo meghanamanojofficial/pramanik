@@ -75,7 +75,7 @@ def wait_for(url: str, name: str, proc: subprocess.Popen, seconds: int | None = 
 
 
 def serve(cwd: Path, app: str, port: int, reload: bool, host: str = "127.0.0.1") -> subprocess.Popen:
-    cmd = [sys.executable, "-m", "uvicorn", app, "--host", host, "--port", str(port), "--proxy-headers"]
+    cmd = [sys.executable, "-m", "uvicorn", app, "--host", host, "--port", str(port), "--proxy-headers", "--no-server-header"]
     if reload:
         cmd.append("--reload")
     return subprocess.Popen(cmd, cwd=cwd)  # inherits os.environ (see main(): --test gives it a fresh ledger)

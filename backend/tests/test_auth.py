@@ -169,6 +169,10 @@ class AccessTests(Api):
         self.assertIn("'unsafe-inline'", page.headers["content-security-policy"].split("script-src")[1].split(";")[0])  # it has an inline script
         self.assertNotIn("frame-ancestors 'self'", page.headers["content-security-policy"])
 
+    def test_the_api_description_is_not_published(self):
+        for path in ("/docs", "/redoc", "/openapi.json"):
+            self.assertEqual(self.client.get(path).status_code, 404, path)
+
     def test_only_listed_pages_are_served(self):
         for path in ("/app/../config/ui.json", "/app/package.json", "/app/build.mjs", "/app/tailwind/base.css", "/app/..%2fbackend%2f.env"):
             self.assertNotEqual(self.client.get(path).status_code, 200, path)
