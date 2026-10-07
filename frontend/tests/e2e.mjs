@@ -97,7 +97,7 @@ const $ = (w, sel) => w.document.querySelector(sel);
 const text = (w, sel) => ($(w, sel) ? $(w, sel).textContent : null);
 
 // The dashboard shows the officer first, then applies the server's settings: wait for both before looking at it.
-const dashboardReady = (w) => until(() => text(w, '#userName') !== '…' && text(w, '#sysIssuer') !== 'ISSUER: …', 30000, 'dashboard to finish loading');
+const dashboardReady = (w) => until(() => text(w, '#userName') !== '…' && w.document.querySelector('#realFileInput').getAttribute('accept'), 30000, 'dashboard to finish loading');
 
 async function uploadViaDashboard(carry, file, caseId, opts = {}) {
   const w = await openPage('maindash.html', carry);
@@ -164,6 +164,7 @@ async function main() {
   await until(() => $(w, '#fullName'), 3000);
   await sleep(300);
   check('profile form starts empty (no pre-filled person)', w.document.querySelector('#fullName').value === '' && w.document.querySelector('#officerId').value === '');
+  check('profile form has no role picker', !w.document.querySelector('#selectedRole, .role-pill') && !/Select your role|Citizen|Employer|Institution/.test(w.document.body.textContent));
   w.document.querySelector('#fullName').value = 'Asha Menon';
   w.document.querySelector('#officerId').value = 'bad id!';
   w.document.querySelector('#creds-form').dispatchEvent(new w.Event('submit', { cancelable: true }));
@@ -179,14 +180,13 @@ async function main() {
   w = await openPage('maindash.html');
   await dashboardReady(w);
   check('dashboard: shows the signed-in officer from the server', text(w, '#userName') === 'Asha Menon' && text(w, '#userRoleBadge') === OFFICER);
-  const docs = [...w.document.querySelectorAll('#acceptedDocsList li')].map((l) => l.textContent);
-  check('dashboard: lists only the documents actually supported (no Aadhaar, PAN...)', docs.length === 1 && /Income Certificate/.test(docs[0]) && !/Aadhaar|PAN|Vehicle/.test(w.document.body.textContent), docs.join(' | '));
+  check('dashboard: no accepted-documents bar, no status tiles, no claims about unsupported documents',
+    !w.document.querySelector('#acceptedDocsBtn, #acceptedDocsModal, #systemTelemetry, #liveStatusRoute') && !/Aadhaar|PAN card|Vehicle|SYSTEM ONLINE|ISSUER:|accept\?/.test(w.document.body.textContent));
   await sleep(LATENCY + 300);   // let the page's own history request finish before looking at the page
   const mine = await (await browserFetch('/api/history')).json();
   check('dashboard: a new officer has no history, and nothing is made up',
     Array.isArray(mine) && mine.length === 0 && w.document.querySelectorAll('.audit-card').length === 0
     && !/degree_certificate|experience_letter|trade_licence/.test(w.document.body.textContent), `server returned ${mine.length}`);
-  check('dashboard: telemetry comes from the server', text(w, '#sysStatus') === 'SYSTEM ONLINE' && /REVENUE/.test(text(w, '#sysIssuer')), text(w, '#sysStatus') + ' / ' + text(w, '#sysIssuer'));
   check('dashboard: accepts images as well as PDFs', /image\/jpeg/.test(w.document.querySelector('#realFileInput').getAttribute('accept')));
 
   /* -- 5. upload guards -- */

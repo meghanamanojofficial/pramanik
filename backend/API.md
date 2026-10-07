@@ -19,7 +19,7 @@ State-changing requests that carry an `Origin` of another site are refused (403)
 | `PUT /api/auth/profile` | `{full_name, officer_id, phone?, organisation?, role?}` | `{user}` | 400 invalid; 401; 409 officer ID belongs to another account |
 
 `user` = `{email, full_name, phone, organisation, role, officer_id, profile_complete}`. Officer IDs are 2-63 characters of
-letters, digits and `. _ - /`, unique per account. `role` is one of `Citizen, Officer, Employer, Institution`
+letters, digits and `. _ - /`, unique per account. `role` is one of `Citizen, Officer, Employer, Institution` and defaults to `Officer`; the pages no longer ask for it
 (informational; it grants nothing).
 
 ## `POST /verify`  (multipart form; needs a signed-in user with a complete profile: 401 / 403 otherwise)

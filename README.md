@@ -176,8 +176,7 @@ The issuer's audit log (`issuer_service/audit.jsonl`) records key, issuer and ou
   sessions expire (`PRAMANIK_SESSION_HOURS`, default 8). Failed logins are throttled and a wrong password looks the same
   as an unknown e-mail. Requests that name another site as their origin are refused.
 - **Who may sign up** is a deployment choice: open (demo; a warning is printed), `PRAMANIK_SIGNUP_CODE`, or
-  `PRAMANIK_SIGNUP=closed` with accounts made by `python backend/tools/create_user.py`. Roles chosen on the profile page
-  are informational: they grant nothing. There is no password reset, e-mail verification or MFA yet.
+  `PRAMANIK_SIGNUP=closed` with accounts made by `python backend/tools/create_user.py`. The profile page does not ask for a role: every account is stored as an officer (the API still accepts one, and it grants nothing). There is no password reset, e-mail verification or MFA yet.
 - **Officer ID in the audit log** is the one on the signed-in account (unique per account) and every line records
   `"officer_id_source": "authenticated_account"`. The log shows what was checked, when and by which account.
 - **The pages** send no inline script and load nothing from other sites (a strict Content-Security-Policy backs this up);

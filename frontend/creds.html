@@ -1,13 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en" style=""><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>PRAMANIK - Credentials</title>
-
-
-
-
-
 <!-- BEGIN: Custom Glassmorphism Styles -->
 <style data-purpose="glassmorphic-card">
     .glass-card {
@@ -100,27 +96,7 @@
 <input class="custom-input w-full px-4 py-3 rounded-xl text-sm sm:text-base text-slate-100 placeholder-slate-500 font-mono" id="officerId" name="officerId" placeholder="e.g. OFC-4921" required="" type="text"/>
 </div>
 <!-- BEGIN: Role Selection Pills -->
-<div class="space-y-2 pt-1" data-purpose="role-selector">
-<label class="block text-xs font-medium text-slate-400 tracking-wide">
-              Select your role
-            </label>
-<!-- Pills Container -->
-<div class="flex flex-wrap items-center gap-2 pt-0.5" id="rolesContainer">
-<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-all cursor-pointer" data-role="Citizen" type="button">
-  Citizen
-</button>
-<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#8c94ba] text-[#12141e] border border-transparent shadow-sm transition-all cursor-pointer" data-role="Officer" type="button">
-  Officer
-</button>
-<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-all cursor-pointer" data-role="Employer" type="button">
-  Employer
-</button>
-<button class="role-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-all cursor-pointer" data-role="Institution" type="button">
-  Institution
-</button>
-</div>
-<input id="selectedRole" name="role" type="hidden" value="Officer"/>
-</div>
+
 <!-- END: Role Selection Pills -->
 <!-- Submit Button -->
 <p class="hidden text-[13px] text-red-400 font-normal" id="formError" role="alert"></p><div class="pt-4" data-purpose="form-action">
@@ -135,6 +111,4 @@
 <!-- END: Right Form Card -->
 </main>
 <!-- END: Main Layout Container -->
-
-
 <script src="js/api.js"></script><script src="js/ui.js"></script><script src="js/creds.js"></script></body></html>

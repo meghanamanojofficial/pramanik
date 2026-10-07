@@ -30,22 +30,6 @@
   $('closeDrawerBtn').addEventListener('click', closeDrawer);
   backdrop.addEventListener('click', closeDrawer);
 
-  /* ---------- accepted documents popover ---------- */
-  var docsBtn = $('acceptedDocsBtn'), docsModal = $('acceptedDocsModal');
-  function toggleDocs(e) {
-    if (e) e.stopPropagation();
-    if (docsModal.classList.contains('hidden')) {
-      docsModal.classList.remove('hidden');
-      setTimeout(function () { docsModal.classList.remove('opacity-0', 'scale-95'); docsModal.classList.add('opacity-100', 'scale-100'); }, 10);
-    } else {
-      docsModal.classList.remove('opacity-100', 'scale-100'); docsModal.classList.add('opacity-0', 'scale-95');
-      setTimeout(function () { docsModal.classList.add('hidden'); }, 200);
-    }
-  }
-  docsBtn.addEventListener('click', toggleDocs);
-  $('closeAcceptedDocsBtn').addEventListener('click', toggleDocs);
-  docsModal.addEventListener('click', function (e) { e.stopPropagation(); });
-
   /* ---------- upload menu ---------- */
   var trigger = $('uploadDropdownTrigger'), menu = $('uploadMenu'), arrow = $('dropdownArrow');
   function closeMenu() {
@@ -63,7 +47,6 @@
   });
   document.addEventListener('click', function (e) {
     if (!trigger.contains(e.target) && !menu.contains(e.target) && !menu.classList.contains('hidden')) closeMenu();
-    if (!docsModal.classList.contains('hidden') && !docsModal.contains(e.target) && !docsBtn.contains(e.target)) toggleDocs();
   });
 
   /* ---------- choosing a file ---------- */
@@ -223,22 +206,11 @@
 
   /* ---------- start ---------- */
   function fillConfig() {
-    var types = cfg.document_types || [];
-    var ul = $('acceptedDocsList'); ul.textContent = '';
-    types.forEach(function (d) {
-      var li = UI.el('li', 'flex items-start gap-2.5');
-      li.appendChild(UI.el('span', 'mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0'));
-      li.appendChild(UI.el('span', null, d.title + ' (' + d.issuer + ')'));
-      ul.appendChild(li);
-    });
-    $('acceptedDocsIntro').textContent = 'PRAMANIK checks a document against the record its issuer holds. Supported right now:';
-    $('acceptedFormat').textContent = 'Format: PDF, or a JPG / PNG / WebP photo or scan';
     var limit = cfg.max_upload_mb || 10;
     $('dropZoneHint').textContent = 'PDF, JPG, PNG or WebP, up to ' + limit + ' MB';
     var sel = $('purposeSelect'); sel.textContent = '';
     (cfg.purposes || []).forEach(function (p) { sel.appendChild(UI.el('option', null, p)); });
     fileInput.setAttribute('accept', acceptedTypes().join(',') + ',.pdf,.jpg,.jpeg,.png,.webp');
-    $('sysIssuer').textContent = 'ISSUER: ' + ((cfg.issuers || []).join(', ').toUpperCase() || 'NONE');
   }
 
   function showLastResult() {
@@ -250,13 +222,6 @@
     var s = $('liveStatusScan'); s.style.cursor = 'pointer'; s.onclick = function () { location.href = 'result.html'; };
   }
 
-  async function checkSystem() {
-    var ok = false;
-    try { ok = (await (await fetch('/health', { cache: 'no-store' })).json()).status === 'ok'; } catch (e) { ok = false; }
-    $('sysStatus').textContent = ok ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE';
-    $('routeText').textContent = ok ? 'Issuer link responding' : 'Issuer link not responding';
-  }
-
   (async function init() {
     var user = await API.requireSession(true);
     $('userName').textContent = user.full_name;
@@ -266,7 +231,6 @@
     fillConfig();
     readyResolve();
     $('caseId').value = API.getCaseId();
-    checkSystem();
     showLastResult();
     loadAudits();
   })();

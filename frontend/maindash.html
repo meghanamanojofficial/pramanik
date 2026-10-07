@@ -1,16 +1,10 @@
 <!DOCTYPE html>
+
 <html class="dark" lang="en" style=""><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>PRAMANIK — Official Document Verification</title>
 <!-- Google Font: Inter & JetBrains Mono -->
-
-
-
-
-
-
-
 <!-- Custom Styling for Obsidian Glassmorphism, cybernetic grid & sleek micro-animations -->
 <style data-purpose="custom-glass-and-glow">
     .cyber-grid {
@@ -89,14 +83,9 @@
 <!-- BEGIN: Minimal TopBar with Status indicator & Right Hamburger Trigger -->
 <header class="w-full h-16 border-b border-white/[0.06] px-6 lg:px-12 flex items-center justify-between z-30 bg-obsidian-950/60 backdrop-blur-md relative">
 <!-- Top-left Telemetry Status Bar -->
-<div class="flex items-center space-x-2 text-[11px] font-mono text-gray-400 select-none" id="systemTelemetry">
-<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-<span class="text-gray-300" id="sysStatus">SYSTEM ONLINE</span>
-<span class="text-white/20">|</span>
-<span class="text-gray-400" id="sysIssuer">ISSUER: …</span>
-</div>
+
 <!-- Top-Right Hamburger Menu Button (Three Lines) -->
-<button aria-label="Audits and verification history" class="group flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-obsidian-850/80 hover:bg-obsidian-750 border border-white/10 text-gray-300 hover:text-white transition shadow-sm active:scale-95" id="hamburgerBtn" type="button">
+<button aria-label="Audits and verification history" class="group flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-obsidian-850/80 hover:bg-obsidian-750 border border-white/10 text-gray-300 hover:text-white transition shadow-sm active:scale-95" id="hamburgerBtn" style="margin-left:auto" type="button">
 <span class="text-xs font-medium tracking-wide text-gray-300 group-hover:text-white transition hidden sm:inline">Audits &amp; History</span>
 <!-- Three lines hamburger icon -->
 <div class="flex flex-col justify-center items-center gap-1 w-5 h-5">
@@ -115,34 +104,7 @@
 <!-- Centered Hero Workspace -->
 <div class="w-full max-w-4xl flex flex-col items-center text-center my-auto relative">
 <!-- Pill Button: "What documents does PRAMANIK accept?" with Non-Obstructing Flyout Card -->
-<div class="relative flex flex-col items-center mb-6 z-30" id="acceptedDocsContainer">
-<button class="flex items-center gap-2.5 px-5 py-2 rounded-full bg-white hover:bg-gray-100 text-[#0d0e12] font-semibold text-xs tracking-wide shadow-lg hover:shadow-[0_0_24px_rgba(255,255,255,0.4)] transition-all duration-200 active:scale-95 group" id="acceptedDocsBtn" type="button">
-<svg class="w-4 h-4 text-[#0d0e12] flex-shrink-0" fill="none" stroke="currentColor" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"></circle><path d="M12 16v-4m0-4h.01" stroke-linecap="round" stroke-width="2.5"></path></svg>
-<span class="font-semibold text-xs">What documents does PRAMANIK accept?</span>
-<svg class="w-3.5 h-3.5 text-[#0d0e12]/70 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg>
-</button>
-<!-- Flyout Card (Opens upward/above or lateral sideways without covering 'P R A M A N I K' or Central Card) -->
-<div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 sm:left-auto sm:right-full sm:mr-4 sm:bottom-auto sm:top-0 sm:translate-x-0 w-80 sm:w-88 rounded-2xl glass-panel p-5 shadow-2xl border border-white/15 bg-obsidian-950/95 backdrop-blur-2xl transition-all duration-200 origin-bottom sm:origin-top-right z-50 text-left select-none opacity-0 scale-95 hidden" id="acceptedDocsModal">
-<div class="flex items-center justify-between pb-3 mb-3.5 border-b border-white/10">
-<div class="flex items-center gap-2">
-<div class="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center">
-<svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-</div>
-<h3 class="text-xs font-bold text-white tracking-wide uppercase">Accepted Documents</h3>
-</div>
-<!-- Clean Close (✕) Button -->
-<button aria-label="Close modal" class="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center transition active:scale-90" id="closeAcceptedDocsBtn" type="button">
-<span class="text-xs leading-none">✕</span>
-</button>
-</div>
-<p class="text-[11px] text-gray-400 mb-3 leading-relaxed" id="acceptedDocsIntro">PRAMANIK checks a document against the record held by its issuer. Supported right now:</p>
-<ul class="space-y-1.5 text-xs font-medium text-gray-200" id="acceptedDocsList"></ul>
-<div class="mt-3.5 pt-2.5 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-gray-400 font-mono">
-<span class="text-gray-300 font-medium" id="acceptedFormat">Format: PDF (Official digital &amp; scanned)</span>
-<span class="text-emerald-400/90 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>Active Verifiers</span>
-</div>
-</div>
-</div>
+
 <!-- Main Title: P R A M A N I K with tracking-[0.35em], bold, crisp white -->
 <h1 class="text-4xl sm:text-6xl md:text-7xl font-black tracking-[0.35em] text-white select-none drop-shadow-md mb-4 pl-[0.35em]">
         PRAMANIK
@@ -223,8 +185,7 @@
 <!-- Live Status Label -->
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[11px] font-mono text-gray-400 gap-1 pt-1 border-t border-white/[0.06]">
 <span class="text-gray-300 flex items-center gap-1.5" id="liveStatusScan"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Waiting for document selection...</span>
-<span class="text-emerald-400/90 font-medium flex items-center gap-1" id="liveStatusRoute">
-<svg class="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg><span id="routeText">Checking issuer link…</span></span>
+
 </div>
 </div>
 <!-- Centered Bottom Philosophy Note -->
@@ -316,7 +277,5 @@
 <!-- Frosted Backdrop Blur Overlay (Clicking closes drawer) -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-md z-40 transition-opacity duration-300 opacity-0 hidden" id="drawerBackdrop"></div>
 <!-- BEGIN: InteractiveScripts -->
-
-
 <!-- END: InteractiveScripts -->
 <script src="js/api.js"></script><script src="js/ui.js"></script><script src="js/maindash.js"></script></body></html>
